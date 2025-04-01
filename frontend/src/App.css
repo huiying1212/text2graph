@@ -1,0 +1,104 @@
+.App {
+  height: 85vh; /* 页面高度设置为视口高度，充满屏幕 */
+  width: 100vw;  /* 页面宽度设置为视口宽度，充满屏幕 */
+  display: flex;
+  flex-direction: column;
+}
+
+
+.main-container {
+  display: flex;
+  flex: 1; /* 主体内容占满剩余空间 */
+  overflow: hidden;
+  width: 100%;
+  border-radius: 20px;
+}
+
+.left-board {
+  flex: 2.5; /* 左侧白板占据更大的比例 */
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 15px;
+  display: flex;  /* 确保内容能使用flex布局 */
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative; /* 确保子元素的绝对定位可以相对于父容器 */
+  /* background-image: url('bg.png'); 设置底图 */
+  background-size: cover; /* 使图像填充容器 */
+  background-position: center; /* 将背景图居中显示 */
+  background-repeat: no-repeat; /* 防止图像重复 */
+  height: calc(100% - 10px); /* 减去与右侧padding对应的值 */
+}
+.left-board canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.right-chat-box {
+  flex: 1; /* 右侧聊天框占据剩余空间 */
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-left: 2px solid #ddd;
+  height: 100%;
+}
+
+/* 聊天窗口的基本样式  */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 设置高度为父容器的 100% */
+  min-height: 320px; /* 设置聊天窗口的最小高度，避免未使用时缩小过多 */
+  overflow-y: auto;  /* 当消息超出窗口高度时，启用垂直滚动 */
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 10px; /* 圆角 */
+}
+
+.input-area {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+}
+
+.query-input {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* 用户消息样式 */
+.user-message {
+  background-color: #bf88a5; /* 用户消息的背景颜色 */
+  color: white; /* 文字颜色 */
+  align-self: flex-end; /* 用户消息右对齐 */
+  padding: 10px;
+  border-radius: 20px 20px 0 20px; /* 圆角气泡 */
+  margin: 5px 0; /* 上下间距 */
+  max-width: 60%; /* 控制气泡最大宽度 */
+  word-wrap: break-word; /* 让文字自动换行 */
+}
+
+/* 系统消息样式 */
+.system-message {
+  background-color: #e2e3e5; /* 系统消息的背景颜色 */
+  color: black; /* 文字颜色 */
+  align-self: flex-start; /* 系统消息左对齐 */
+  padding: 10px;
+  border-radius: 20px 20px 20px 0; /* 圆角气泡 */
+  margin: 5px 0; /* 上下间距 */
+  max-width: 60%; /* 控制气泡最大宽度 */
+  word-wrap: break-word; /* 让文字自动换行 */
+  text-align: left;
+}
