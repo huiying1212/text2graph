@@ -1,17 +1,13 @@
 // server.mjs
 import dotenv from 'dotenv';
-import OpenAI from 'openai';
 import express from 'express';
 import cors from 'cors';
+import DeepSeekHandler from './deepseek_handler.mjs';
 
 dotenv.config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// const assistantId = 'asst_Zim6IJi5s5qRQhewWMjiqjuM';
-const assistantId = 'asst_YpyxHD5eDY3bmbUqJhDSV0Ij';
+// 初始化DeepSeek处理程序
+const deepseekHandler = new DeepSeekHandler(process.env.DEEPSEEK_API_KEY);
 
 const app = express();
 app.use(cors());
@@ -56,38 +52,6 @@ const requestLimiter = (req, res, next) => {
 const requestCounts = {};
 const ipBlacklist = new Set();
 
-// 优化的等待助手运行完成的函数
-async function waitForRunCompletion(threadId, runId, maxRetries = 30) {
-  let run;
-  let attempts = 0;
-  
-  while (attempts < maxRetries) {
-    try {
-      run = await openai.beta.threads.runs.retrieve(threadId, runId);
-      
-      if (run.status === 'completed' || run.status === 'failed' || run.status === 'cancelled') {
-        return run;
-      }
-      
-      // 使用指数退避策略，随着尝试次数增加等待时间
-      const waitTime = Math.min(1000 * Math.pow(1.5, attempts), 10000); // 最多等待10秒
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      attempts++;
-    } catch (error) {
-      console.error(`Error retrieving run (attempt ${attempts}):`, error);
-      // 如果是网络或API错误，使用更长的等待时间
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      attempts++;
-      
-      if (attempts >= maxRetries) {
-        throw new Error('达到最大重试次数，无法完成运行');
-      }
-    }
-  }
-  
-  throw new Error('请求超时，助手未能完成运行');
-}
-
 // 应用请求限制中间件
 app.use('/chat', requestLimiter);
 
@@ -100,53 +64,11 @@ app.post('/chat', async (req, res) => {
   }
 
   try {
-    // 创建一个新的对话线程
-    const thread = await openai.beta.threads.create();
-
-    // 将用户的消息添加到线程中
-    await openai.beta.threads.messages.create(thread.id, {
-      role: 'user',
-      content: message,
-    });
-
-    // 运行助手
-    const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: assistantId,
-    });
-
-    // 等待运行完成
-    const completedRun = await waitForRunCompletion(thread.id, run.id);
-
-    if (completedRun.status === 'completed') {
-      // 获取消息列表
-      const messages = await openai.beta.threads.messages.list(completedRun.thread_id);
-      const assistantMessage = messages.data.find(m => m.role === 'assistant');
-      
-      if (!assistantMessage || !assistantMessage.content || assistantMessage.content.length === 0) {
-        return res.status(500).json({ error: '助手回复为空' });
-      }
-      
-      const assistantReply = assistantMessage.content[0].text.value;
-
-      // 在解析之前记录助手的回复
-      console.log('Assistant Reply:', assistantReply);
-
-      let data;
-      try {
-        // 解析助手的回复为JSON
-        data = JSON.parse(assistantReply);
-      } catch (parseError) {
-        console.error('JSON Parsing Error:', parseError);
-        return res.status(500).json({ error: '助手回复的格式无效，无法解析为JSON。' });
-      }
-
-      // 将数据发送回前端
-      res.json({ reply: assistantReply, data });
-    } else {
-      // 运行失败，获取错误详情
-      console.error('Run failed. Error details:', completedRun.error);
-      res.status(500).json({ error: '助手运行失败。', details: completedRun.error });
-    }
+    // 使用DeepSeek处理程序处理用户输入
+    const result = await deepseekHandler.processQuery(message);
+    
+    // 将数据发送回前端
+    res.json(result);
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: '发生了一个错误。', message: error.message });
