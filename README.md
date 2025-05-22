@@ -1,6 +1,6 @@
-# DesignClass 项目
+# Text2Graph 简介
 
-DesignClass是一个交互式设计类别可视化工具，使用React前端和Express后端，结合OpenAI API实现智能分析和可视化。
+Text2Graph是一个交互式文本可视化工具，使用React前端和Express后端，结合deepseek实现智能分析和可视化。
 
 ## 项目结构
 
@@ -52,13 +52,22 @@ npm start
 
 ## 功能特点
 
-- 智能设计类别分析
 - 交互式知识图谱可视化
 - 动态图形布局与用户交互
 - 实时对话界面
 
+## 应用场景
+
+- 学生学习
+-- 帮助总结知识点、梳理知识脉络
+-- 帮助学生拓展相关知识
+- 教师教学
+-- 辅助教学PPT制作
+-- 辅助教学思路的设计
+
 ## 技术栈
 
+prompt engineering、embedding
 - **前端**: React, Cytoscape.js, Axios
 - **后端**: Express, OpenAI API
 - **通信**: REST API 
