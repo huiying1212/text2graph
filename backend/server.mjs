@@ -13,48 +13,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 简单的请求限制中间件
-const requestLimiter = (req, res, next) => {
-  // 从请求中获取IP地址
-  const ip = req.ip || req.connection.remoteAddress;
-  
-  // 检查IP地址是否在黑名单中
-  if (ipBlacklist.has(ip)) {
-    return res.status(429).json({ error: '请求过于频繁，请稍后再试' });
-  }
-  
-  // 记录请求时间戳
-  if (!requestCounts[ip]) {
-    requestCounts[ip] = [];
-  }
-  
-  const now = Date.now();
-  // 只保留最近1分钟的请求记录
-  requestCounts[ip] = requestCounts[ip].filter(time => now - time < 60000);
-  // 添加当前请求时间戳
-  requestCounts[ip].push(now);
-  
-  // 如果1分钟内请求超过10次，将IP加入黑名单
-  if (requestCounts[ip].length > 10) {
-    ipBlacklist.add(ip);
-    // 10分钟后从黑名单中移除
-    setTimeout(() => {
-      ipBlacklist.delete(ip);
-    }, 600000);
-    
-    return res.status(429).json({ error: '请求过于频繁，请10分钟后再试' });
-  }
-  
-  next();
-};
-
-// 请求计数和IP黑名单
-const requestCounts = {};
-const ipBlacklist = new Set();
-
-// 应用请求限制中间件
-app.use('/chat', requestLimiter);
-
 app.post('/chat', async (req, res) => {
   const { message } = req.body;
   
