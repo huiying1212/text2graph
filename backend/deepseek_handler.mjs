@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
 import { fileURLToPath } from 'url';
+import VectorDBHandler from './vectordb.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,10 +12,8 @@ class DeepSeekHandler {
   constructor(apiKey) {
     this.apiKey = apiKey;
     this.baseUrl = 'https://api.deepseek.com';
-    this.imageData = null;
-    this.contentData = null;
     this.systemPrompt = '';
-    this.loadDataFiles();
+    this.vectorDBHandler = new VectorDBHandler();
     this.loadSystemPrompt();
   }
 
@@ -30,46 +29,65 @@ class DeepSeekHandler {
     }
   }
 
-  // 加载数据文件
-  loadDataFiles() {
-    try {
-      const imagePath = path.join(__dirname, '..', 'image.json');
-      const contentPath = path.join(__dirname, '..', 'content.json');
-      
-      this.imageData = JSON.parse(fs.readFileSync(imagePath, 'utf8'));
-      this.contentData = JSON.parse(fs.readFileSync(contentPath, 'utf8'));
-      
-      console.log('数据文件加载成功');
-    } catch (error) {
-      console.error('加载数据文件失败:', error);
-      throw new Error('无法加载数据文件');
-    }
+  // 初始化向量数据库
+  async initializeVectorDB() {
+    await this.vectorDBHandler.initialize();
   }
 
   // 构建带上下文的提示词
-  buildContextPrompt(userInput) {
-    // 为了避免token过多，我们只发送部分内容数据
-    // 实际应用中可以根据用户输入进行相关性匹配
-    const imageContext = this.imageData.slice(0, 20);
+  async buildContextPrompt(userInput) {
+    // 确保向量数据库已初始化
+    if (!this.vectorDBHandler.initialized) {
+      await this.initializeVectorDB();
+    }
+
+    // 使用向量相似性搜索获取相关文档
+    const relevantDocs = await this.vectorDBHandler.similaritySearch(userInput, 10);
     
-    // 为每个内容章节提供摘要
-    const contentSummary = this.contentData.map(item => {
-      return {
-        chapter_number: item.chapter_number,
-        chapter_name: item.chapter_name,
-        summary: item.chapter_test.substring(0, 500) + '...' // 只取前500个字符
-      };
-    });
+    // 分离图片和内容数据
+    const imageData = [];
+    const contentData = [];
+    
+    for (const doc of relevantDocs) {
+      if (doc.metadata.type === 'image') {
+        imageData.push({
+          chapter_number: doc.metadata.chapter_number,
+          chapter_name: doc.metadata.chapter_name,
+          image_ID: doc.metadata.image_ID,
+          image_url: doc.metadata.image_url,
+          image_description: doc.pageContent
+        });
+      } else if (doc.metadata.type === 'content') {
+        // 将内容添加到章节数据中，如果该章节已存在则合并
+        const existingChapter = contentData.find(item => 
+          item.chapter_number === doc.metadata.chapter_number
+        );
+        
+        if (existingChapter) {
+          // 如果已存在该章节，则添加内容
+          if (!existingChapter.chapter_test.includes(doc.pageContent)) {
+            existingChapter.chapter_test += '\n' + doc.pageContent;
+          }
+        } else {
+          // 如果不存在该章节，则创建新的
+          contentData.push({
+            chapter_number: doc.metadata.chapter_number,
+            chapter_name: doc.metadata.chapter_name,
+            chapter_test: doc.pageContent
+          });
+        }
+      }
+    }
 
     // 构建提示词
     const contextPrompt = `
-以下是可用的参考数据:
+以下是与您查询相关的参考数据:
 
-## 图片数据示例:
-${JSON.stringify(imageContext, null, 2)}
+## 图片数据:
+${JSON.stringify(imageData, null, 2)}
 
 ## 内容数据摘要:
-${JSON.stringify(contentSummary, null, 2)}
+${JSON.stringify(contentData, null, 2)}
 
 用户输入: ${userInput}
 
@@ -83,7 +101,12 @@ ${JSON.stringify(contentSummary, null, 2)}
   async processQuery(userInput) {
     try {
       // 构建提示词
-      const userMessage = this.buildContextPrompt(userInput);
+      const userMessage = await this.buildContextPrompt(userInput);
+
+      // 打印构建好的提示词
+      console.log('===== 构建的提示词开始 =====');
+      console.log(userMessage);
+      console.log('===== 构建的提示词结束 =====');
 
       // 调用DeepSeek API
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -112,6 +135,9 @@ ${JSON.stringify(contentSummary, null, 2)}
       const assistantReply = result.choices[0].message.content;
 
       console.log('获取到DeepSeek响应');
+      console.log('===== DeepSeek响应内容开始 =====');
+      console.log(assistantReply);
+      console.log('===== DeepSeek响应内容结束 =====');
 
       // 尝试解析JSON
       let data;

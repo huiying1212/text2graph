@@ -13,6 +13,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 在服务启动时初始化向量数据库
+(async () => {
+  try {
+    console.log("正在初始化向量数据库...");
+    await deepseekHandler.initializeVectorDB();
+    console.log("向量数据库初始化成功");
+  } catch (error) {
+    console.error("向量数据库初始化失败:", error);
+  }
+})();
+
 app.post('/chat', async (req, res) => {
   const { message } = req.body;
   
