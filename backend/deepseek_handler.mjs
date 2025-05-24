@@ -42,41 +42,43 @@ class DeepSeekHandler {
     }
 
     // 使用向量相似性搜索获取相关文档
-    const relevantDocs = await this.vectorDBHandler.similaritySearch(userInput, 10);
+    const searchResults = await this.vectorDBHandler.similaritySearch(userInput, 10);
     
     // 分离图片和内容数据
     const imageData = [];
     const contentData = [];
     
-    for (const doc of relevantDocs) {
-      if (doc.metadata.type === 'image') {
-        imageData.push({
+    // 处理内容搜索结果
+    for (const doc of searchResults.contentResults) {
+      // 将内容添加到章节数据中，如果该章节已存在则合并
+      const existingChapter = contentData.find(item => 
+        item.chapter_number === doc.metadata.chapter_number
+      );
+      
+      if (existingChapter) {
+        // 如果已存在该章节，则添加内容
+        if (!existingChapter.chapter_test.includes(doc.pageContent)) {
+          existingChapter.chapter_test += '\n' + doc.pageContent;
+        }
+      } else {
+        // 如果不存在该章节，则创建新的
+        contentData.push({
           chapter_number: doc.metadata.chapter_number,
           chapter_name: doc.metadata.chapter_name,
-          image_ID: doc.metadata.image_ID,
-          image_url: doc.metadata.image_url,
-          image_description: doc.pageContent
+          chapter_test: doc.pageContent
         });
-      } else if (doc.metadata.type === 'content') {
-        // 将内容添加到章节数据中，如果该章节已存在则合并
-        const existingChapter = contentData.find(item => 
-          item.chapter_number === doc.metadata.chapter_number
-        );
-        
-        if (existingChapter) {
-          // 如果已存在该章节，则添加内容
-          if (!existingChapter.chapter_test.includes(doc.pageContent)) {
-            existingChapter.chapter_test += '\n' + doc.pageContent;
-          }
-        } else {
-          // 如果不存在该章节，则创建新的
-          contentData.push({
-            chapter_number: doc.metadata.chapter_number,
-            chapter_name: doc.metadata.chapter_name,
-            chapter_test: doc.pageContent
-          });
-        }
       }
+    }
+    
+    // 处理图片搜索结果
+    for (const doc of searchResults.imageResults) {
+      imageData.push({
+        chapter_number: doc.metadata.chapter_number,
+        chapter_name: doc.metadata.chapter_name,
+        image_ID: doc.metadata.image_ID,
+        image_url: doc.metadata.image_url,
+        image_description: doc.pageContent
+      });
     }
 
     // 构建提示词

@@ -109,7 +109,8 @@ class CustomTransformersEmbeddings extends Embeddings {
 
 class VectorDBHandler {
   constructor() {
-    this.vectorStore = null;
+    this.contentVectorStore = null;  // 内容向量存储
+    this.imageVectorStore = null;    // 图片向量存储
     this.embeddings = null;
     this.initialized = false;
   }
@@ -136,7 +137,7 @@ class VectorDBHandler {
       // 预初始化嵌入模型
       await this.embeddings.init();
 
-      await this.loadOrCreateVectorStore();
+      await this.loadOrCreateVectorStores();
       this.initialized = true;
       console.log('向量数据库初始化成功');
     } catch (error) {
@@ -148,64 +149,64 @@ class VectorDBHandler {
     }
   }
   
-  async loadOrCreateVectorStore() {
-    const vectorStorePath = path.join(__dirname, '..', 'vectordb'); // 这个路径是存储 Faiss 索引的地方，和模型路径无关
+  async loadOrCreateVectorStores() {
+    const contentVectorStorePath = path.join(__dirname, '..', 'vectordb_content');
+    const imageVectorStorePath = path.join(__dirname, '..', 'vectordb_image');
     
+    // 加载或创建内容向量存储
     try {
-      if (fs.existsSync(vectorStorePath) && fs.readdirSync(vectorStorePath).length > 0) { // 检查目录是否存在且不为空
-        console.log('加载现有向量存储...');
-        this.vectorStore = await FaissStore.load(vectorStorePath, this.embeddings); // this.embeddings 此时应该已经成功初始化
-        return;
+      if (fs.existsSync(contentVectorStorePath) && fs.readdirSync(contentVectorStorePath).length > 0) {
+        console.log('加载现有内容向量存储...');
+        this.contentVectorStore = await FaissStore.load(contentVectorStorePath, this.embeddings);
+      } else {
+        console.log('创建新的内容向量存储...');
+        await this.createContentVectorStore(contentVectorStorePath);
       }
     } catch (error) {
-      console.warn('加载向量存储失败,将创建新的向量存储:', error.message);
-      // 如果加载失败（例如文件损坏或不兼容），确保删除旧的存储，以便重新创建
-      if (fs.existsSync(vectorStorePath)) {
-        fs.rmSync(vectorStorePath, { recursive: true, force: true });
-        console.log('已删除损坏的旧向量存储.');
+      console.warn('加载内容向量存储失败,将创建新的向量存储:', error.message);
+      if (fs.existsSync(contentVectorStorePath)) {
+        fs.rmSync(contentVectorStorePath, { recursive: true, force: true });
+        console.log('已删除损坏的旧内容向量存储.');
       }
+      await this.createContentVectorStore(contentVectorStorePath);
     }
-
-    console.log('创建新的向量存储...');
-    await this.createVectorStore(vectorStorePath);
+    
+    // 加载或创建图片向量存储
+    try {
+      if (fs.existsSync(imageVectorStorePath) && fs.readdirSync(imageVectorStorePath).length > 0) {
+        console.log('加载现有图片向量存储...');
+        this.imageVectorStore = await FaissStore.load(imageVectorStorePath, this.embeddings);
+      } else {
+        console.log('创建新的图片向量存储...');
+        await this.createImageVectorStore(imageVectorStorePath);
+      }
+    } catch (error) {
+      console.warn('加载图片向量存储失败,将创建新的向量存储:', error.message);
+      if (fs.existsSync(imageVectorStorePath)) {
+        fs.rmSync(imageVectorStorePath, { recursive: true, force: true });
+        console.log('已删除损坏的旧图片向量存储.');
+      }
+      await this.createImageVectorStore(imageVectorStorePath);
+    }
   }
 
-  // ... (createVectorStore, similaritySearch 等其他方法保持不变) ...
-  // 确保 createVectorStore 方法正确使用已经初始化好的 this.embeddings
-  async createVectorStore(vectorStorePath) {
+  async createContentVectorStore(vectorStorePath) {
     try {
-      // ... (加载 content.json, image.json 的代码) ...
       const contentPath = path.join(__dirname, '..', 'content.json');
-      const imagePath = path.join(__dirname, '..', 'image.json');
-      
       const contentData = JSON.parse(fs.readFileSync(contentPath, 'utf8'));
-      const imageData = JSON.parse(fs.readFileSync(imagePath, 'utf8'));
       
       const documents = [];
-      // ... (处理数据并创建 Document 实例的代码) ...
-        for (const item of contentData) {
-            const doc = new Document({
-                pageContent: item.chapter_test,
-                metadata: {
-                    chapter_number: item.chapter_number,
-                    chapter_name: item.chapter_name
-                }
-            });
-            documents.push(doc);
-        }
-        for (const item of imageData) {
-            const doc = new Document({
-                pageContent: item.image_description,
-                metadata: {
-                    chapter_number: item.chapter_number,
-                    chapter_name: item.chapter_name,
-                    image_ID: item.image_ID,
-                    image_url: item.image_url
-                }
-            });
-            documents.push(doc);
-        }
-
+      for (const item of contentData) {
+        const doc = new Document({
+          pageContent: item.chapter_test,
+          metadata: {
+            type: 'content',
+            chapter_number: item.chapter_number,
+            chapter_name: item.chapter_name
+          }
+        });
+        documents.push(doc);
+      }
 
       const textSplitter = new RecursiveCharacterTextSplitter({
         chunkSize: 1000,
@@ -214,35 +215,80 @@ class VectorDBHandler {
 
       const splitDocs = await textSplitter.splitDocuments(documents);
       
-      // 确保 this.embeddings 已经成功初始化
       if (!this.embeddings) {
-          throw new Error("Embeddings 未初始化，无法创建向量存储。");
+        throw new Error("Embeddings 未初始化，无法创建内容向量存储。");
       }
-      this.vectorStore = await FaissStore.fromDocuments(splitDocs, this.embeddings);
       
-      await this.vectorStore.save(vectorStorePath);
+      this.contentVectorStore = await FaissStore.fromDocuments(splitDocs, this.embeddings);
+      await this.contentVectorStore.save(vectorStorePath);
       
-      console.log(`向量数据库创建成功,共${splitDocs.length}个文档`);
+      console.log(`内容向量数据库创建成功,共${splitDocs.length}个文档`);
     } catch (error) {
-      console.error('创建向量存储失败:', error);
+      console.error('创建内容向量存储失败:', error);
+      throw error;
+    }
+  }
+  
+  async createImageVectorStore(vectorStorePath) {
+    try {
+      const imagePath = path.join(__dirname, '..', 'image.json');
+      const imageData = JSON.parse(fs.readFileSync(imagePath, 'utf8'));
+      
+      const documents = [];
+      for (const item of imageData) {
+        const doc = new Document({
+          pageContent: item.image_description,
+          metadata: {
+            type: 'image',
+            chapter_number: item.chapter_number,
+            chapter_name: item.chapter_name,
+            image_ID: item.image_ID,
+            image_url: item.image_url
+          }
+        });
+        documents.push(doc);
+      }
+
+      const textSplitter = new RecursiveCharacterTextSplitter({
+        chunkSize: 1000,
+        chunkOverlap: 200
+      });
+
+      const splitDocs = await textSplitter.splitDocuments(documents);
+      
+      if (!this.embeddings) {
+        throw new Error("Embeddings 未初始化，无法创建图片向量存储。");
+      }
+      
+      this.imageVectorStore = await FaissStore.fromDocuments(splitDocs, this.embeddings);
+      await this.imageVectorStore.save(vectorStorePath);
+      
+      console.log(`图片向量数据库创建成功,共${splitDocs.length}个文档`);
+    } catch (error) {
+      console.error('创建图片向量存储失败:', error);
       throw error;
     }
   }
 
   async similaritySearch(query, k = 5) {
     if (!this.initialized) {
-      // 可以选择在这里等待初始化完成或抛出错误
-      // console.log("向量数据库尚未初始化，正在尝试初始化...");
-      // await this.initialize(); // 或者确保在调用 search 之前总是先调用 initialize
       throw new Error("向量数据库尚未初始化。请先调用 initialize()。");
     }
-    if (!this.vectorStore) {
-        throw new Error("向量存储未加载。");
+    
+    if (!this.contentVectorStore || !this.imageVectorStore) {
+      throw new Error("向量存储未完全加载。");
     }
 
     try {
-      const results = await this.vectorStore.similaritySearch(query, k);
-      return results;
+      // 从内容和图片向量存储中分别搜索
+      const contentResults = await this.contentVectorStore.similaritySearch(query, k);
+      const imageResults = await this.imageVectorStore.similaritySearch(query, k);
+      
+      // 返回两组结果
+      return {
+        contentResults,
+        imageResults
+      };
     } catch (error) {
       console.error('相似性搜索失败:', error);
       throw error;
