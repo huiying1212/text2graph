@@ -1,12 +1,27 @@
 // InputArea.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function InputArea({ setGraphData, setResponse, setLoading, loading }) {
+function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
   const [query, setQuery] = useState("");
+  const [placeholder, setPlaceholder] = useState("请先选择模式...");
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+
+  useEffect(() => {
+    if (mode === 'organize') {
+      setPlaceholder("请输入文本进行知识梳理...");
+      setIsButtonDisabled(false);
+    } else if (mode === 'extend') {
+      setPlaceholder("请输入文本进行知识拓展...");
+      setIsButtonDisabled(false);
+    } else {
+      setPlaceholder("请先选择模式...");
+      setIsButtonDisabled(true);
+    }
+  }, [mode]);
 
   const handleQuery = async () => {
-    if (!query) return;
+    if (!query || !mode) return;
 
     setLoading(true);
 
@@ -14,7 +29,10 @@ function InputArea({ setGraphData, setResponse, setLoading, loading }) {
     setResponse((prevResponse) => [...prevResponse, { role: 'user', content: query }]);
 
     try {
-      const res = await axios.post('http://localhost:5000/chat', { message: query }, {
+      // 根据模式选择不同的API端点
+      const endpoint = mode === 'extend' ? 'http://localhost:5000/extend' : 'http://localhost:5000/chat';
+      
+      const res = await axios.post(endpoint, { message: query }, {
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -52,13 +70,13 @@ function InputArea({ setGraphData, setResponse, setLoading, loading }) {
       <input
         className="query-input"
         type="text"
-        placeholder="请输入文本信息...."
+        placeholder={placeholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onKeyPress={(e) => { if (e.key === 'Enter') handleQuery(); }}
-        disabled={loading}
+        onKeyPress={(e) => { if (e.key === 'Enter' && !isButtonDisabled) handleQuery(); }}
+        disabled={loading || isButtonDisabled}
       />
-      <button onClick={handleQuery} disabled={loading || !query}>
+      <button onClick={handleQuery} disabled={loading || !query || isButtonDisabled}>
         {loading ? "加载中..." : "发送"}
       </button>
     </div>

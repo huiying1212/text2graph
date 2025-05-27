@@ -24,6 +24,7 @@ app.use(express.json());
   }
 })();
 
+// 知识梳理路由
 app.post('/chat', async (req, res) => {
   const { message } = req.body;
   
@@ -35,6 +36,27 @@ app.post('/chat', async (req, res) => {
   try {
     // 使用DeepSeek处理程序处理用户输入
     const result = await deepseekHandler.processQuery(message);
+    
+    // 将数据发送回前端
+    res.json(result);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: '发生了一个错误。', message: error.message });
+  }
+});
+
+// 知识拓展路由
+app.post('/extend', async (req, res) => {
+  const { message } = req.body;
+  
+  // 基本验证：检查消息是否为空
+  if (!message || typeof message !== 'string' || message.trim() === '') {
+    return res.status(400).json({ error: '消息不能为空' });
+  }
+
+  try {
+    // 使用DeepSeek处理程序处理用户的知识拓展请求
+    const result = await deepseekHandler.processExtensionQuery(message);
     
     // 将数据发送回前端
     res.json(result);

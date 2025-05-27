@@ -13,8 +13,10 @@ class DeepSeekHandler {
     this.apiKey = apiKey;
     this.baseUrl = 'https://api.deepseek.com';
     this.systemPrompt = '';
+    this.extensionPrompt = '';
     this.vectorDBHandler = new VectorDBHandler();
     this.loadSystemPrompt();
+    this.loadExtensionPrompt();
   }
 
   // 加载系统提示词
@@ -26,6 +28,18 @@ class DeepSeekHandler {
     } catch (error) {
       console.error('加载系统提示词失败:', error);
       this.systemPrompt = 'You are an assistant that generates structured JSON for visualizing input text.';
+    }
+  }
+
+  // 加载知识拓展提示词
+  loadExtensionPrompt() {
+    try {
+      const promptPath = path.join(__dirname, '..', 'prompt2.txt');
+      this.extensionPrompt = fs.readFileSync(promptPath, 'utf8');
+      console.log('知识拓展提示词加载成功');
+    } catch (error) {
+      console.error('加载知识拓展提示词失败:', error);
+      this.extensionPrompt = 'You are an assistant that generates structured JSON for visualizing input text.';
     }
   }
 
@@ -99,7 +113,7 @@ ${JSON.stringify(contentData, null, 2)}
     return contextPrompt;
   }
 
-  // 调用DeepSeek API
+  // 调用DeepSeek API 处理知识梳理
   async processQuery(userInput) {
     try {
       // 构建提示词
@@ -154,6 +168,65 @@ ${JSON.stringify(contentData, null, 2)}
       }
     } catch (error) {
       console.error('处理查询时出错:', error);
+      throw error;
+    }
+  }
+
+  // 调用DeepSeek API 处理知识拓展
+  async processExtensionQuery(userInput) {
+    try {
+      // 构建提示词
+      const userMessage = await this.buildContextPrompt(userInput);
+
+      // 打印构建好的提示词
+      console.log('===== 构建的拓展提示词开始 =====');
+      console.log(userMessage);
+      console.log('===== 构建的拓展提示词结束 =====');
+
+      // 调用DeepSeek API
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: this.extensionPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          stream: false
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('DeepSeek API错误:', errorData);
+        throw new Error(`DeepSeek API错误: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const assistantReply = result.choices[0].message.content;
+
+      console.log('获取到DeepSeek拓展响应');
+      console.log('===== DeepSeek拓展响应内容开始 =====');
+      console.log(assistantReply);
+      console.log('===== DeepSeek拓展响应内容结束 =====');
+
+      // 尝试解析JSON
+      let data;
+      try {
+        // 清理可能存在的markdown格式
+        const cleanReply = assistantReply.replace(/```json|```/g, '').trim();
+        data = JSON.parse(cleanReply);
+        return { reply: assistantReply, data };
+      } catch (error) {
+        console.error('JSON解析错误:', error);
+        throw new Error('无法解析响应为JSON');
+      }
+    } catch (error) {
+      console.error('处理拓展查询时出错:', error);
       throw error;
     }
   }

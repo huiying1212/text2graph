@@ -5,7 +5,7 @@ import fcose from 'cytoscape-fcose'; // fCoSE图布局算法
 
 cytoscape.use(fcose); 
 
-function CanvasBoard({ graphData }) {
+function CanvasBoard({ graphData, onModeSelect }) {
   const cyRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -56,6 +56,26 @@ function CanvasBoard({ graphData }) {
           },
         },
         {
+          selector: 'node.extended-node',
+          style: {
+            'background-color': '#bf88a5',
+            'background-image': 'data(image)',
+            'background-fit': 'contain',
+            'background-clip': 'none',
+            'width': 'data(size)',
+            'height': 'data(size)',
+            'text-wrap': 'wrap',
+            'text-max-width': '150px',
+            'text-valign': 'bottom',
+            'text-halign': 'center',
+            'label': 'data(details)', 
+            'font-size': '15px',
+            'text-margin-y': '15px', 
+            'grabbable': true, 
+            'padding': '20px', 
+          },
+        },
+        {
           selector: 'edge',
           style: {
             'label': 'data(label)',
@@ -99,9 +119,52 @@ function CanvasBoard({ graphData }) {
 
   if (!graphData) {
     return (
-      <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-        <div className="welcome-text" style={welcomeTextStyle}>
-          W E L C O M E
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        position: 'relative',
+        overflow: 'hidden'  // 确保内容不会溢出
+      }}>
+        {/* 背景层 - 只有背景图片有透明度 */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          backgroundImage: 'url(/background.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.7,
+          zIndex: 0  // 修改为0，确保背景可见
+        }} />
+        {/* 内容层 - 保持完全不透明 */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          zIndex: 1  // 确保内容在背景之上
+        }}>
+          <div className="welcome-text" style={welcomeTextStyle}>
+            W E L C O M E
+          </div>
+          <div className="welcome-buttons" style={buttonContainerStyle}>
+            <button 
+              style={buttonStyle} 
+              onClick={() => onModeSelect('organize')}
+            >
+              知识梳理
+            </button>
+            <button 
+              style={buttonStyle} 
+              onClick={() => onModeSelect('extend')}
+            >
+              知识拓展
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -118,13 +181,35 @@ function CanvasBoard({ graphData }) {
 
 const welcomeTextStyle = {
   position: 'absolute',
-  top: '50%',
+  top: '40%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  fontSize: '48px',
+  fontSize: '55px',
   color: '#ffffff',
   fontWeight: 'bold',
   textShadow: '2px 2px 4px rgba(0,0,0,0.7)',
+};
+
+const buttonContainerStyle = {
+  position: 'absolute',
+  top: '60%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  display: 'flex',
+  gap: '50px',
+  justifyContent: 'center',
+};
+
+const buttonStyle = {
+  padding: '18px 50px',
+  fontSize: '18px',
+  backgroundColor: '#bf88a5',
+  color: 'white',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+  transition: 'all 0.3s ease',
 };
 
 function transformDataToElements(graphData) {
@@ -180,8 +265,9 @@ function transformDataToElements(graphData) {
         degree: degree,
         size: size,
         details: `${node.description}\n${node.otherinfo}`,
+        isExtendedInfo: node.isExtendedInfo,
       },
-      classes: 'detail-node', 
+      classes: node.isExtendedInfo === 1 ? 'extended-node' : 'detail-node', 
     });
   });
 
