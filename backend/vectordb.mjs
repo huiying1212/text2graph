@@ -113,6 +113,8 @@ class VectorDBHandler {
     this.imageVectorStore = null;    // 图片向量存储
     this.embeddings = null;
     this.initialized = false;
+    // 新增: 记录内容向量存储路径，方便后续保存
+    this.contentVectorStorePath = path.join(__dirname, '..', 'vectordb_content');
   }
 
   async initialize() {
@@ -150,7 +152,7 @@ class VectorDBHandler {
   }
   
   async loadOrCreateVectorStores() {
-    const contentVectorStorePath = path.join(__dirname, '..', 'vectordb_content');
+    const contentVectorStorePath = this.contentVectorStorePath; // 修改为使用实例属性
     const imageVectorStorePath = path.join(__dirname, '..', 'vectordb_image');
     
     // 加载或创建内容向量存储
@@ -291,6 +293,52 @@ class VectorDBHandler {
       };
     } catch (error) {
       console.error('相似性搜索失败:', error);
+      throw error;
+    }
+  }
+
+  async addUploadedFile(filePath, originalName = 'uploaded_file') {
+    // 向量化用户上传的文件并将其合并到现有的内容向量存储中
+    try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
+      if (!this.contentVectorStore) {
+        throw new Error('内容向量存储尚未就绪');
+      }
+
+      // 读取文件内容（按文本处理）
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+
+      // 创建 Document
+      const uploadDoc = new Document({
+        pageContent: fileContent,
+        metadata: {
+          type: 'upload',
+          chapter_number: 'upload',
+          chapter_name: originalName,
+          filename: originalName
+        }
+      });
+
+      // 拆分文本
+      const textSplitter = new RecursiveCharacterTextSplitter({
+        chunkSize: 1000,
+        chunkOverlap: 200
+      });
+
+      const splitDocs = await textSplitter.splitDocuments([uploadDoc]);
+
+      // 添加到内容向量库
+      await this.contentVectorStore.addDocuments(splitDocs);
+
+      // 保存最新的向量库到磁盘
+      await this.contentVectorStore.save(this.contentVectorStorePath);
+
+      console.log(`[VectorDBHandler] 已成功向量化并合并上传文件: ${originalName}, 生成文档数: ${splitDocs.length}`);
+    } catch (error) {
+      console.error('[VectorDBHandler] 处理上传文件时出错:', error);
       throw error;
     }
   }

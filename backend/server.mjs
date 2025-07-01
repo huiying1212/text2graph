@@ -3,8 +3,15 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import DeepSeekHandler from './deepseek_handler.mjs';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+// 兼容ESM下的 __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 初始化DeepSeek处理程序
 const deepseekHandler = new DeepSeekHandler(process.env.DEEPSEEK_API_KEY);
@@ -12,6 +19,11 @@ const deepseekHandler = new DeepSeekHandler(process.env.DEEPSEEK_API_KEY);
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// 设置 multer 用于文件上传
+const upload = multer({
+  dest: path.join(__dirname, 'uploads')
+});
 
 // 在服务启动时初始化向量数据库
 (async () => {
@@ -65,6 +77,28 @@ app.post('/extend', async (req, res) => {
     res.status(500).json({ error: '发生了一个错误。', message: error.message });
   }
 });
+
+// ============ 新增: 文件上传路由 ============
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '未检测到上传文件' });
+    }
+
+    const { path: filePath, originalname } = req.file;
+
+    console.log(`收到上传文件: ${originalname}, 保存路径: ${filePath}`);
+
+    // 调用向量数据库处理上传文件
+    await deepseekHandler.vectorDBHandler.addUploadedFile(filePath, originalname);
+
+    res.json({ message: '文件上传并向量化成功', filename: originalname });
+  } catch (error) {
+    console.error('文件上传处理出错:', error);
+    res.status(500).json({ error: '文件上传或向量化失败', message: error.message });
+  }
+});
+// ============ 文件上传路由结束 ============
 
 // 添加健康检查端点
 app.get('/health', (req, res) => {

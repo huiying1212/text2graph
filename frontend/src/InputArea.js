@@ -1,11 +1,12 @@
 // InputArea.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
   const [query, setQuery] = useState("");
   const [placeholder, setPlaceholder] = useState("请先选择模式...");
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (mode === 'organize') {
@@ -65,8 +66,52 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
     }
   };
 
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null;
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      await axios.post('http://localhost:5000/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setResponse((prev) => [
+        ...prev,
+        { role: 'system', content: `文件 "${file.name}" 已上传并处理。` },
+      ]);
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      setResponse((prev) => [
+        ...prev,
+        { role: 'system', content: '文件上传失败，请稍后重试。' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="input-area">
+      <button className="upload-button" onClick={handleUploadClick} disabled={loading}>
+        +
+      </button>
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
       <input
         className="query-input"
         type="text"

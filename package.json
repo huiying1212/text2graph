@@ -23,6 +23,7 @@
     "faiss-node": "^0.5.1",
     "https-proxy-agent": "^7.0.5",
     "langchain": "^0.3.27",
+    "multer": "^2.0.1",
     "node-fetch": "^3.3.2",
     "react-cytoscapejs": "^2.0.0",
     "tippy.js": "^6.3.7"
