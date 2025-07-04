@@ -1,64 +1,328 @@
+/* 导入现代字体 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
   padding: 20px;
-  background-color: #d2dde7; /* 保留一个默认的背景颜色 */
-  position: relative; /* 确保伪元素正确定位 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px; /* 新增：设置基础字体大小为14px */
 }
 
+/* 移除旧的伪元素背景 */
 body::before {
+  display: none;
+}
+
+/* 添加动态背景效果 */
+body::after {
   content: "";
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-size: cover; /* 让背景图片覆盖整个页面 */
-  background-position: center; /* 图片居中 */
-  opacity: 0.25; /* 设定透明度，这里是50%透明 */
-  z-index: -1; /* 将伪元素置于内容后面 */
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
+  z-index: -1;
+  animation: backgroundFloat 20s ease-in-out infinite;
+}
+
+@keyframes backgroundFloat {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate(30px, -30px) rotate(1deg);
+  }
+  66% {
+    transform: translate(-20px, 20px) rotate(-1deg);
+  }
 }
 
 .App {
   text-align: center;
-  padding: 25px;
+  padding: 20px; /* 从25px减少到20px */
   margin: 0 auto;
-  max-width: 90vw;
-  background: rgba(175, 194, 204, 0.9);
-  border-radius: 30px;
-  box-shadow: 0px 0px 20px rgba(0,0,0,0.1);
+  max-width: 95vw; /* 从90vw增加到95vw，更好利用屏幕空间 */
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 25px; /* 从30px减少到25px */
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15), /* 从25px减少到20px */
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: fadeInUp 0.8s ease-out;
 }
 
+/* 优化输入框样式 */
 .query-input {
   width: 70%;
-  padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ddd;
-  border-radius: 30px;
+  padding: 10px 16px; /* 从14px 20px减少到10px 16px */
+  margin: 8px 0; /* 从10px减少到8px */
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px; /* 从25px减少到20px */
+  background: rgba(255, 255, 255, 0.9);
+  font-family: inherit;
+  font-size: 14px; /* 从16px减少到14px */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 3px 10px rgba(0, 0, 0, 0.05), /* 从4px 12px减少 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+.query-input:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 
+    0 6px 20px rgba(102, 126, 234, 0.2), /* 从8px 24px减少 */
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+}
+
+.query-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* 优化按钮样式 */
 button {
-  padding: 10px 20px;
+  padding: 10px 20px; /* 从14px 28px减少到10px 20px */
   border: none;
-  border-radius: 23px;
-  background-color: #bf88a5;
+  border-radius: 20px; /* 从25px减少到20px */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px; /* 从16px减少到14px */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 12px rgba(102, 126, 234, 0.3), /* 从6px 16px减少 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+button:hover {
+  transform: translateY(-2px); /* 从-3px减少到-2px */
+  box-shadow: 
+    0 8px 20px rgba(102, 126, 234, 0.4), /* 从10px 24px减少 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+button:active {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 12px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 button:disabled {
-  background-color: #cccccc;
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
+/* 响应式内容容器 */
 .response-container {
-  margin-top: 20px;
+  margin-top: 16px; /* 从20px减少到16px */
+  animation: fadeInUp 0.5s ease-out;
 }
 
 .text-display, .image-display {
-  margin: 20px 0;
+  margin: 16px 0; /* 从20px减少到16px */
+  padding: 16px; /* 从20px减少到16px */
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px; /* 从15px减少到12px */
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.1), /* 从8px 24px减少 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .image-display img {
-  border-radius: 30px;
-  box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+  border-radius: 12px; /* 从15px减少到12px */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* 从8px 24px减少 */
+  transition: transform 0.3s ease;
+}
+
+.image-display img:hover {
+  transform: scale(1.02);
+}
+
+/* 优化滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #5a6fd8, #6a4190);
+}
+
+/* 加载状态优化 */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px; /* 从12px减少到10px */
+  padding: 16px; /* 从20px减少到16px */
+  color: #667eea;
+  font-weight: 500;
+}
+
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 增强的动画效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  body {
+    background: #1a1a1a;
+  }
+  
+  .App {
+    background: rgba(255, 255, 255, 0.95);
+    color: #000;
+  }
+  
+  button {
+    background: #000;
+    color: #fff;
+  }
+}
+
+/* 减少动画偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  body::after {
+    animation: none;
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  }
+  
+  .App {
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+  }
+}
+
+/* 移动设备优化 */
+@media (max-width: 768px) {
+  body {
+    padding: 8px; /* 从10px减少到8px */
+    font-size: 13px; /* 新增：移动端使用更小字体 */
+  }
+  
+  .App {
+    padding: 12px; /* 从15px减少到12px */
+    max-width: 98vw; /* 从95vw增加到98vw */
+  }
+  
+  .query-input {
+    width: 100%;
+    font-size: 14px; /* 保持14px防止iOS缩放 */
+    padding: 8px 14px; /* 减少移动端padding */
+  }
+  
+  button {
+    width: 100%;
+    margin-top: 8px; /* 从10px减少到8px */
+    padding: 8px 16px; /* 减少移动端padding */
+  }
+}
+
+/* 打印样式 */
+@media print {
+  body {
+    background: white !important;
+  }
+  
+  .App {
+    background: white !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+  
+  button {
+    display: none !important;
+  }
 }

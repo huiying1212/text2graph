@@ -1,134 +1,550 @@
 .App {
-  height: 85vh; /* 页面高度设置为视口高度，充满屏幕 */
-  width: 100vw;  /* 页面宽度设置为视口宽度，充满屏幕 */
+  height: 85vh;
+  width: 90vw;
   display: flex;
   flex-direction: column;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
-
 
 .main-container {
   display: flex;
-  flex: 1; /* 主体内容占满剩余空间 */
+  flex: 1;
   overflow: hidden;
   width: 100%;
-  border-radius: 20px;
-  padding-top: 10px; /* 统一顶部留白，避免组件上移 */
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.05);
+  margin: 8px; /* 统一为8px，增加一些空间 */
+  gap: 8px; /* 添加gap来替代单独的margin */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .left-board {
-  flex: 2.5; /* 左侧白板占据更大的比例 */
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 15px;
-  display: flex;  /* 确保内容能使用flex布局 */
+  flex: 2.5;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px;
+  display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  position: relative; /* 确保子元素的绝对定位可以相对于父容器 */
-  /* background-image: url('bg.png'); 设置底图 */
-  background-size: cover; /* 使图像填充容器 */
-  background-position: center; /* 将背景图居中显示 */
-  background-repeat: no-repeat; /* 防止图像重复 */
-  height: calc(100% - 10px); /* 减去与右侧padding对应的值 */
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 100%; /* 统一为100% */
+  border-radius: 12px;
+  box-shadow: 
+    0 6px 24px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
 }
+
+.left-board:hover {
+  box-shadow: 
+    0 8px 32px rgba(0,0,0,0.15), /* 从12px 40px减少 */
+    inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
 .left-board canvas {
   width: 100% !important;
   height: 100% !important;
   display: block;
+  border-radius: 8px;
+}
+
+/* 确保cytoscape容器正确适应left-board */
+.left-board #cy {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .right-chat-box {
-  flex: 1; /* 右侧聊天框占据剩余空间 */
+  flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-left: 2px solid #ddd;
+  padding: 16px; /* 与left-board保持完全一致 */
+  background: rgba(255, 255, 255, 0.95);
   height: 100%;
+  border-radius: 12px;
+  box-shadow: 
+    0 6px 24px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* 聊天窗口的基本样式  */
+/* 聊天窗口优化样式 */
 .chat-window {
   display: flex;
   flex-direction: column;
-  height: 100%; /* 设置高度为父容器的 100% */
-  min-height: 320px; /* 设置聊天窗口的最小高度，避免未使用时缩小过多 */
-  overflow-y: auto;  /* 当消息超出窗口高度时，启用垂直滚动 */
-  padding: 10px; /* 增加顶部内边距 */
-  margin-top: 10px; /* 与顶部容器留出间距 */
-  border: 1px solid #ddd; /* 添加边框，四周视觉一致 */
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 10px; /* 圆角 */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  margin: 0; /* 完全移除所有margin */
+  background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+  border-radius: 10px;
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.06),
+    0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255,255,255,0.8);
+  position: relative;
+}
+
+.chat-window::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+/* 自定义滚动条 */
+.chat-window::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-window::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.05);
+  border-radius: 10px;
+}
+
+.chat-window::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.chat-window::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #5a6fd8, #6a4190);
 }
 
 .input-area {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 12px;
+  margin-top: 12px; /* 恢复合理的间距 */
+  box-shadow: 
+    0 3px 10px rgba(0,0,0,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.3);
+  position: relative; /* 确保绝对定位子元素的参考点 */
+  flex-shrink: 0; /* 防止input-area被压缩 */
 }
 
 .query-input {
   flex: 1;
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-right: 10px;
+  padding: 10px 14px; /* 从14px 18px减少到10px 14px */
+  font-size: 14px; /* 从16px减少到14px */
+  border: 2px solid transparent;
+  border-radius: 20px; /* 从25px减少到20px */
+  margin-right: 10px; /* 从12px减少到10px */
+  background: rgba(255,255,255,0.9);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 2px 6px rgba(0,0,0,0.05), /* 从2px 8px减少 */
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  font-family: inherit;
+}
+
+.query-input:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(255,255,255,1);
+  box-shadow: 
+    0 3px 10px rgba(102,126,234,0.2), /* 从4px 12px减少 */
+    inset 0 1px 0 rgba(255,255,255,1);
+  transform: translateY(-1px);
+}
+
+.query-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 button {
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 10px 18px; /* 从14px 24px减少到10px 18px */
+  font-size: 14px; /* 从16px减少到14px */
+  font-weight: 600;
   cursor: pointer;
+  border: none;
+  border-radius: 20px; /* 从25px减少到20px */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 3px 10px rgba(102,126,234,0.3), /* 从4px 12px减少 */
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  position: relative;
+  overflow: hidden;
 }
 
-/* 用户消息样式 */
+button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 20px rgba(102,126,234,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+button:hover::before {
+  left: 100%;
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 8px rgba(102,126,234,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+button:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+button:disabled::before {
+  display: none;
+}
+
+/* 用户消息样式增强 */
 .user-message {
-  background-color: #bf88a5; /* 用户消息的背景颜色 */
-  color: white; /* 文字颜色 */
-  align-self: flex-end; /* 用户消息右对齐 */
-  padding: 10px;
-  border-radius: 20px 20px 0 20px; /* 圆角气泡 */
-  margin: 5px 0; /* 上下间距 */
-  max-width: 60%; /* 控制气泡最大宽度 */
-  word-wrap: break-word; /* 让文字自动换行 */
+  max-width: 70%;
+  margin: 8px 0; /* 从margin处理更紧凑 */
+  padding: 10px 14px; /* 从更大的padding减少 */
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 16px 16px 4px 16px; /* 从18px减少到16px */
+  align-self: flex-end;
+  box-shadow: 0 3px 10px rgba(102,126,234,0.3); /* 从更大的阴影减少 */
+  position: relative;
+  font-size: 14px; /* 新增：明确字体大小 */
+  line-height: 1.4; /* 新增：适当行高 */
+  animation: slideInRight 0.3s ease-out;
 }
 
-/* 系统消息样式 */
+.user-message::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* 系统消息样式增强 */
 .system-message {
-  background-color: #e2e3e5; /* 系统消息的背景颜色 */
-  color: black; /* 文字颜色 */
-  align-self: flex-start; /* 系统消息左对齐 */
-  padding: 10px;
-  border-radius: 20px 20px 20px 0; /* 圆角气泡 */
-  margin: 5px 0; /* 上下间距 */
-  max-width: 60%; /* 控制气泡最大宽度 */
-  word-wrap: break-word; /* 让文字自动换行 */
-  text-align: left;
+  max-width: 75%;
+  margin: 8px 0; /* 从margin处理更紧凑 */
+  padding: 10px 14px; /* 从更大的padding减少 */
+  background: rgba(255,255,255,0.9);
+  color: #334155;
+  border-radius: 16px 16px 16px 4px; /* 从18px减少到16px */
+  align-self: flex-start;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1); /* 从更大的阴影减少 */
+  border: 1px solid rgba(0,0,0,0.1);
+  font-size: 14px; /* 新增：明确字体大小 */
+  line-height: 1.4; /* 新增：适当行高 */
+  animation: slideInLeft 0.3s ease-out;
 }
 
 .upload-button {
-  margin-right: 10px;
-  width: 36px;
-  height: 36px;
-  font-size: 24px;
-  line-height: 24px;
-  background-color: #f5f5f5; /* 更浅的灰色背景，避免纯白不可见 */
-  color: #333; /* 加号颜色 */
-  border: 2px solid #999;
+  margin-right: 12px;
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  line-height: 1;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: #667eea;
+  border: 2px solid rgba(102,126,234,0.2);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 3px 8px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  font-weight: bold;
 }
 
 .upload-button:hover {
-  background-color: #e0e0e0; /* 悬停时稍微变深 */
-  border-color: #666;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 6px 16px rgba(102,126,234,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
 .upload-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+  transform: none;
+}
+
+/* 动画效果 */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 工具栏按钮悬停效果增强 */
+.graph-toolbar button:hover {
+  background-color: rgba(102,126,234,0.1) !important;
+  transform: scale(1.05);
+}
+
+/* 新增：保存按钮特殊悬停效果 */
+.graph-toolbar button[title="保存图谱"]:hover {
+  background-color: rgba(16,185,129,0.1) !important;
+  color: #10b981 !important;
+  transform: scale(1.1) !important;
+}
+
+/* 新增：首页按钮特殊悬停效果 */
+.graph-toolbar button[title="返回首页"]:hover {
+  background-color: rgba(245,158,11,0.1) !important;
+  color: #f59e0b !important;
+  transform: scale(1.1) !important;
+}
+
+/* 新增：通知动画 */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(300px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(300px);
+  }
+}
+
+/* 新增：工具栏分隔线样式 */
+.graph-toolbar .separator {
+  width: 1px;
+  height: 20px;
+  background: rgba(0,0,0,0.1);
+  margin: 0 4px;
+}
+
+/* 工具栏按钮统一样式 */
+.graph-toolbar button {
+  background: none !important;
+  border: none !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  color: #64748b !important;
+}
+
+/* 工具栏整体样式增强 */
+.graph-toolbar {
+  box-shadow: 
+    0 4px 16px rgba(0,0,0,0.1),
+    0 1px 3px rgba(0,0,0,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .main-container {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .left-board {
+    flex: 1;
+    height: 60vh;
+  }
+  
+  .right-chat-box {
+    flex: 1; /* 改为flex: 1让高度自适应 */
+    min-height: 35vh; /* 设置最小高度保证可用性 */
+  }
+}
+
+@media (max-width: 768px) {
+  .App {
+    height: 90vh;
+    width: 98vw;
+    border-radius: 8px;
+  }
+  
+  .main-container {
+    margin: 4px;
+    gap: 4px;
+  }
+  
+  .left-board, .right-chat-box {
+    border-radius: 8px;
+    padding: 12px; /* 确保两侧padding一致 */
+  }
+  
+  .chat-window {
+    padding: 8px;
+  }
+  
+  .user-message, .system-message {
+    max-width: 85%;
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  
+  .query-input {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+  
+  button {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
+/* 加载动画 */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 平滑过渡类 */
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 玻璃形态效果 */
+.glass-effect {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 
+    0 8px 32px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+/* 新增：保存下拉菜单动画 */
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 保存菜单项悬停效果增强 */
+.save-menu-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.save-menu-item:hover {
+  transform: translateX(2px) !important;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.15) !important;
+}
+
+/* 保存按钮下拉箭头旋转效果 */
+.save-container:hover .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+/* 保存下拉菜单玻璃形态效果增强 */
+.save-dropdown-menu {
+  background: rgba(255,255,255,0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(16,185,129,0.1) !important;
+  box-shadow: 
+    0 10px 40px rgba(0,0,0,0.1),
+    0 4px 16px rgba(16,185,129,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.8) !important;
 }

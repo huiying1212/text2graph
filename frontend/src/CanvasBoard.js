@@ -1,18 +1,35 @@
 // CanvasBoard.js
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
 import fcose from 'cytoscape-fcose'; // fCoSE图布局算法
+import svg from 'cytoscape-svg'; // SVG导出插件
 
-cytoscape.use(fcose); 
+import GraphToolbar from './components/GraphToolbar';
+import WelcomePage from './components/WelcomePage';
+import NodeInfoPanel from './components/NodeInfoPanel';
+import { transformDataToElements, showNotification } from './utils/graphUtils';
+
+cytoscape.use(fcose);
+cytoscape.use(svg); // 注册SVG插件
 
 function CanvasBoard({ graphData, onModeSelect }) {
   const cyRef = useRef(null);
   const containerRef = useRef(null);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   useEffect(() => {
+    // 如果没有图数据，清理现有的Cytoscape实例
     if (!graphData) {
+      if (cyRef.current) {
+        cyRef.current.destroy();
+        cyRef.current = null;
+      }
+      setSelectedNode(null);
+      setZoomLevel(1);
       return;
     }
+    
     if (cyRef.current) {
       cyRef.current.destroy();
     }
@@ -21,257 +38,376 @@ function CanvasBoard({ graphData, onModeSelect }) {
     cyRef.current = cytoscape({
       container: containerRef.current,
       elements: transformDataToElements(graphData),
-      style: [
-        {
-          selector: 'node.keyword-node',
-          style: {
-            'label': 'data(keyword)',
-            'text-wrap': 'wrap', // 允许文本在达到最大宽度时自动换行
-            'text-max-width': '150px',
-            'text-valign': 'top',
-            'text-halign': 'center',
-            'font-weight': 'bold',
-            'grabbable': true, // dragging
-          },
-        },
-        {
-          selector: 'node.detail-node',
-          style: {
-            'background-color': '#DCDCDC',
-            'background-image': 'data(image)',
-            'background-fit': 'contain', // 图片保持原始比例
-            'background-clip': 'none',
-            'width': 'data(size)',
-            'height': 'data(size)',
-            'text-wrap': 'wrap',
-            'text-max-width': '150px',
-            'text-valign': 'bottom',
-            'text-halign': 'center',
-            'label': 'data(details)', 
-            'font-size': '15px',
-            'text-margin-y': '15px', 
-            'grabbable': true, 
-            // 'shape': 'roundrectangle',
-            'padding': '20px', 
-          },
-        },
-        {
-          selector: 'node.extended-node',
-          style: {
-            'background-color': '#bf88a5',
-            'background-image': 'data(image)',
-            'background-fit': 'contain',
-            'background-clip': 'none',
-            'width': 'data(size)',
-            'height': 'data(size)',
-            'text-wrap': 'wrap',
-            'text-max-width': '150px',
-            'text-valign': 'bottom',
-            'text-halign': 'center',
-            'label': 'data(details)', 
-            'font-size': '15px',
-            'text-margin-y': '15px', 
-            'grabbable': true, 
-            'padding': '20px', 
-          },
-        },
-        {
-          selector: 'edge',
-          style: {
-            'label': 'data(label)',
-            'text-rotation': 'autorotate',
-            'font-weight': 'bold',
-            'font-size': '15px',
-            'text-margin-x': '0px',
-            'text-margin-y': '-10px',
-            'width': 10,
-            'line-color': '#ccc',
-            'target-arrow-color': '#ccc',
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
-            'color': 'gray', 
-            'source-endpoint': 'outside-to-node',
-            'target-endpoint': 'outside-to-node',
-            'arrow-scale': 1.2,
-          },
-        },
-      ],
+      style: cytoscapeStyles,
       layout: {
         name: 'fcose',
         quality: 'default',
-        randomize: false, // 数据不变时布局不变
-        animate: true, 
-        animationDuration: 1000, 
+        randomize: false,
+        animate: true,
+        animationDuration: 1500,
+        animationEasing: 'ease-out-cubic',
         fit: true,
-        padding: 30,
-        nodeSeparation: 300, // 节点间距
+        padding: 50,
+        nodeSeparation: 350,
         nodeDimensionsIncludeLabels: true,
         uniformNodeDimensions: false,
         packComponents: true,
         step: 'all',
+        idealEdgeLength: 200,
+        nodeRepulsion: 2000,
       },
     });
 
-    cyRef.current.userZoomingEnabled(true); // 启用缩放
-    cyRef.current.userPanningEnabled(true); // 启用平移
+    // 启用缩放和平移
+    cyRef.current.userZoomingEnabled(true);
+    cyRef.current.userPanningEnabled(true);
+
+    // 添加事件监听器
+    cyRef.current.on('tap', 'node', function(evt) {
+      const node = evt.target;
+      setSelectedNode(node.id());
+      
+      // 高亮连接的边和节点
+      cyRef.current.elements().removeClass('highlighted');
+      node.addClass('highlighted');
+      node.connectedEdges().addClass('highlighted');
+      node.neighborhood().addClass('highlighted');
+    });
+
+    cyRef.current.on('tap', function(evt) {
+      if (evt.target === cyRef.current) {
+        // 点击空白区域，取消选择
+        setSelectedNode(null);
+        cyRef.current.elements().removeClass('highlighted');
+      }
+    });
+
+    // 监听缩放事件
+    cyRef.current.on('zoom', function(evt) {
+      setZoomLevel(cyRef.current.zoom());
+    });
+
+    // 添加双击节点居中功能
+    cyRef.current.on('dblclick', 'node', function(evt) {
+      const node = evt.target;
+      cyRef.current.animate({
+        center: { eles: node },
+        zoom: 1.5
+      }, {
+        duration: 500,
+        easing: 'ease-out-cubic'
+      });
+    });
 
   }, [graphData]);
 
+  // 添加组件卸载时的清理
+  useEffect(() => {
+    return () => {
+      if (cyRef.current) {
+        cyRef.current.destroy();
+        cyRef.current = null;
+      }
+    };
+  }, []);
+
+  // 返回首页功能
+  const handleBackToHome = () => {
+    // 确认对话框
+    if (window.confirm('确定要返回首页吗？当前的图谱数据将会丢失。')) {
+      // 清理Cytoscape实例
+      if (cyRef.current) {
+        cyRef.current.destroy();
+        cyRef.current = null;
+      }
+      
+      // 重置所有状态
+      setSelectedNode(null);
+      setZoomLevel(1);
+      
+      // 重置到首页状态
+      onModeSelect(null);
+    }
+  };
+
+  // 如果没有图数据，显示欢迎页面
   if (!graphData) {
-    return (
-      <div style={{ 
-        width: '100%', 
-        height: '100%', 
-        position: 'relative',
-        overflow: 'hidden'  // 确保内容不会溢出
-      }}>
-        {/* 背景层 - 只有背景图片有透明度 */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage: 'url(/background.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          opacity: 0.7,
-          zIndex: 0  // 修改为0，确保背景可见
-        }} />
-        {/* 内容层 - 保持完全不透明 */}
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          zIndex: 1  // 确保内容在背景之上
-        }}>
-          <div className="welcome-text" style={welcomeTextStyle}>
-            W E L C O M E
-          </div>
-          <div className="welcome-buttons" style={buttonContainerStyle}>
-            <button 
-              style={buttonStyle} 
-              onClick={() => onModeSelect('organize')}
-            >
-              知识梳理
-            </button>
-            <button 
-              style={buttonStyle} 
-              onClick={() => onModeSelect('extend')}
-            >
-              知识拓展
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return <WelcomePage onModeSelect={onModeSelect} />;
   }
 
   return (
-    <div
-      id="cy"
-      ref={containerRef}
-      style={{ width: '100%', height: '100%', position: 'relative' }}
-    />
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {/* 工具栏 */}
+      <GraphToolbar 
+        cyRef={cyRef}
+        zoomLevel={zoomLevel}
+        onBackToHome={handleBackToHome}
+        showNotification={showNotification}
+      />
+
+      {/* 图谱容器 */}
+      <div
+        id="cy"
+        ref={containerRef}
+        style={{ width: '100%', height: '100%', position: 'relative' }}
+      />
+
+      {/* 选中节点信息面板 */}
+      <NodeInfoPanel selectedNode={selectedNode} />
+    </div>
   );
 }
 
-const welcomeTextStyle = {
-  position: 'absolute',
-  top: '40%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  fontSize: '55px',
-  color: '#ffffff',
-  fontWeight: 'bold',
-  textShadow: '2px 2px 4px rgba(0,0,0,0.7)',
-};
+// Cytoscape样式配置
+const cytoscapeStyles = [
+  {
+    selector: 'node.keyword-node',
+    style: {
+      'label': 'data(keyword)',
+      'text-wrap': 'wrap',
+      'text-max-width': '150px',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'font-weight': 'bold',
+      'font-size': '16px',
+      'color': '#2c3e50',
+      'background-color': '#3498db',
+      'background-gradient-direction': 'to-bottom',
+      'background-gradient-stop-colors': '#3498db #2980b9',
+      'width': '80px',
+      'height': '80px',
+      'border-width': '3px',
+      'border-color': '#2980b9',
+      'border-opacity': 0.8,
+      'box-shadow': '0 4px 8px rgba(0,0,0,0.3)',
+      'shape': 'roundrectangle',
+      'padding': '10px',
+      'grabbable': true,
+      'transition-property': 'background-color, transform, box-shadow',
+      'transition-duration': '0.3s',
+      'transition-timing-function': 'ease-out',
+    },
+  },
+  {
+    selector: 'node.keyword-node:hover',
+    style: {
+      'background-gradient-stop-colors': '#5dade2 #3498db',
+      'transform': 'scale(1.1)',
+      'box-shadow': '0 6px 12px rgba(0,0,0,0.4)',
+      'border-color': '#1f618d',
+      'z-index': 999,
+    },
+  },
+  {
+    selector: 'node.keyword-node:selected',
+    style: {
+      'background-gradient-stop-colors': '#f39c12 #e67e22',
+      'border-color': '#d35400',
+      'transform': 'scale(1.15)',
+      'box-shadow': '0 8px 16px rgba(243,156,18,0.5)',
+    },
+  },
+  {
+    selector: 'node.detail-node',
+    style: {
+      'background-color': '#ecf0f1',
+      'background-image': 'data(image)',
+      'background-fit': 'cover',
+      'background-clip': 'none',
+      'width': 'data(size)',
+      'height': 'data(size)',
+      'text-wrap': 'wrap',
+      'text-max-width': '150px',
+      'text-valign': 'bottom',
+      'text-halign': 'center',
+      'label': 'data(details)', 
+      'font-size': '14px',
+      'font-weight': '500',
+      'color': '#2c3e50',
+      'text-margin-y': '15px',
+      'text-background-color': 'rgba(255,255,255,0.9)',
+      'text-background-opacity': 1,
+      'text-background-padding': '4px',
+      'text-border-radius': '4px',
+      'grabbable': true,
+      'shape': 'roundrectangle',
+      'padding': '15px',
+      'border-width': '2px',
+      'border-color': '#bdc3c7',
+      'box-shadow': '0 3px 6px rgba(0,0,0,0.2)',
+      'transition-property': 'transform, box-shadow, border-color',
+      'transition-duration': '0.2s',
+    },
+  },
+  {
+    selector: 'node.detail-node:hover',
+    style: {
+      'transform': 'scale(1.05)',
+      'box-shadow': '0 5px 10px rgba(0,0,0,0.3)',
+      'border-color': '#95a5a6',
+      'z-index': 998,
+    },
+  },
+  {
+    selector: 'node.extended-node',
+    style: {
+      'background-color': '#f8c6db',
+      'background-image': 'data(image)',
+      'background-fit': 'cover',
+      'background-clip': 'none',
+      'width': 'data(size)',
+      'height': 'data(size)',
+      'text-wrap': 'wrap',
+      'text-max-width': '150px',
+      'text-valign': 'bottom',
+      'text-halign': 'center',
+      'label': 'data(details)', 
+      'font-size': '14px',
+      'font-weight': '500',
+      'color': '#8e44ad',
+      'text-margin-y': '15px',
+      'text-background-color': 'rgba(248,198,219,0.95)',
+      'text-background-opacity': 1,
+      'text-background-padding': '4px',
+      'text-border-radius': '4px',
+      'grabbable': true,
+      'shape': 'roundrectangle',
+      'padding': '15px',
+      'border-width': '3px',
+      'border-color': '#bf88a5',
+      'box-shadow': '0 4px 8px rgba(191,136,165,0.4)',
+      'transition-property': 'transform, box-shadow, border-color',
+      'transition-duration': '0.2s',
+    },
+  },
+  {
+    selector: 'node.extended-node:hover',
+    style: {
+      'transform': 'scale(1.05)',
+      'box-shadow': '0 6px 12px rgba(191,136,165,0.5)',
+      'border-color': '#9b59b6',
+      'background-color': '#f4d1e8',
+      'z-index': 998,
+    },
+  },
+  {
+    selector: 'node.text-only-node',
+    style: {
+      'background-color': 'transparent',
+      'width': 'data(size)',
+      'height': 'data(size)',
+      'text-wrap': 'wrap',
+      'text-max-width': '200px',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'label': 'data(details)', 
+      'font-size': '12px',
+      'font-weight': '500',
+      'color': '#2c3e50',
+      'text-background-color': 'rgba(236,240,241,0.9)',
+      'text-background-opacity': 1,
+      'text-background-padding': '6px',
+      'text-border-radius': '6px',
+      'text-border-width': '1px',
+      'text-border-color': '#bdc3c7',
+      'grabbable': true,
+      'shape': 'ellipse',
+      'border-width': '0px',
+      'transition-property': 'transform',
+      'transition-duration': '0.2s',
+    },
+  },
+  {
+    selector: 'node.text-only-node:hover',
+    style: {
+      'transform': 'scale(1.1)',
+      'text-background-color': 'rgba(189,195,199,0.95)',
+      'z-index': 998,
+    },
+  },
+  {
+    selector: 'node.text-only-extended-node',
+    style: {
+      'background-color': 'transparent',
+      'width': 'data(size)',
+      'height': 'data(size)',
+      'text-wrap': 'wrap',
+      'text-max-width': '200px',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'label': 'data(details)', 
+      'font-size': '12px',
+      'font-weight': '500',
+      'color': '#8e44ad',
+      'text-background-color': 'rgba(248,198,219,0.9)',
+      'text-background-opacity': 1,
+      'text-background-padding': '6px',
+      'text-border-radius': '6px',
+      'text-border-width': '1px',
+      'text-border-color': '#bf88a5',
+      'grabbable': true,
+      'shape': 'ellipse',
+      'border-width': '0px',
+      'transition-property': 'transform',
+      'transition-duration': '0.2s',
+    },
+  },
+  {
+    selector: 'node.text-only-extended-node:hover',
+    style: {
+      'transform': 'scale(1.1)',
+      'text-background-color': 'rgba(191,136,165,0.95)',
+      'z-index': 998,
+    },
+  },
+  {
+    selector: 'edge',
+    style: {
+      'label': 'data(label)',
+      'text-rotation': 'autorotate',
+      'font-weight': '600',
+      'font-size': '13px',
+      'text-margin-x': '0px',
+      'text-margin-y': '-12px',
+      'text-background-color': 'rgba(255,255,255,0.9)',
+      'text-background-opacity': 1,
+      'text-background-padding': '3px',
+      'text-border-radius': '3px',
+      'text-border-width': '1px',
+      'text-border-color': '#e0e0e0',
+      'width': 3,
+      'line-color': '#7f8c8d',
+      'target-arrow-color': '#7f8c8d',
+      'target-arrow-shape': 'triangle',
+      'curve-style': 'bezier',
+      'color': '#34495e',
+      'source-endpoint': 'outside-to-node',
+      'target-endpoint': 'outside-to-node',
+      'arrow-scale': 1.3,
+      'line-gradient-stop-colors': '#7f8c8d #95a5a6',
+      'transition-property': 'line-color, target-arrow-color, width',
+      'transition-duration': '0.2s',
+    },
+  },
+  {
+    selector: 'edge:hover',
+    style: {
+      'width': 4,
+      'line-color': '#3498db',
+      'target-arrow-color': '#3498db',
+      'line-gradient-stop-colors': '#3498db #5dade2',
+      'z-index': 997,
+    },
+  },
+  {
+    selector: 'edge.highlighted',
+    style: {
+      'width': 5,
+      'line-color': '#e74c3c',
+      'target-arrow-color': '#e74c3c',
+      'line-gradient-stop-colors': '#e74c3c #c0392b',
+    },
+  },
+];
 
-const buttonContainerStyle = {
-  position: 'absolute',
-  top: '60%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  display: 'flex',
-  gap: '50px',
-  justifyContent: 'center',
-};
-
-const buttonStyle = {
-  padding: '18px 50px',
-  fontSize: '18px',
-  backgroundColor: '#bf88a5',
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-  transition: 'all 0.3s ease',
-};
-
-function transformDataToElements(graphData) {
-  const nodes = graphData?.keyinfo || [];
-  const edges = graphData?.connections || [];
-  const elements = [];
-  const degreeMap = {};
-
-  nodes.forEach((node) => {
-    degreeMap[node.id] = 0;
-  });
-
-  edges.forEach((edge) => {
-    degreeMap[edge.from] = (degreeMap[edge.from] || 0) + 1; 
-    degreeMap[edge.to] = (degreeMap[edge.to] || 0) + 1;     
-    elements.push({
-      data: {
-        id: `${edge.from}-${edge.to}`,
-        source: edge.from, 
-        target: edge.to,
-        label: edge.relationship,
-      },
-    });
-  });
-
-  const degrees = Object.values(degreeMap);
-  const maxDegree = Math.max(...degrees);
-  const minDegree = Math.min(...degrees);
-
-  // 根据度设置节点大小
-  nodes.forEach((node) => {
-    const degree = degreeMap[node.id];
-    const hasImage = node.image && node.image.trim() !== "";
-    const size = hasImage 
-      ? 100 + ((degreeMap[node.id] - minDegree) / (maxDegree - minDegree || 1)) * 100 
-      : 1; // 如果没有图片节点大小设置为1
-
-    // 父节点
-    elements.push({
-      data: {
-        id: node.id, 
-        keyword: node.keyword,
-      },
-      classes: 'keyword-node', 
-    });
-
-    // 子节点
-    elements.push({
-      data: {
-        id: `${node.id}-child`,
-        parent: node.id, 
-        image: `/images/${node.image}`,
-        degree: degree,
-        size: size,
-        details: `${node.description}\n${node.otherinfo}`,
-        isExtendedInfo: node.isExtendedInfo,
-      },
-      classes: node.isExtendedInfo === 1 ? 'extended-node' : 'detail-node', 
-    });
-  });
-
-  return elements;
-}
-
-export default CanvasBoard;
+export default CanvasBoard; 
