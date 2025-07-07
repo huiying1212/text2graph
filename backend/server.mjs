@@ -78,6 +78,27 @@ app.post('/extend', async (req, res) => {
   }
 });
 
+// 节点拓展路由（使用prompt3）
+app.post('/node-extend', async (req, res) => {
+  const { nodeKeyword } = req.body;
+  
+  // 基本验证：检查关键词是否为空
+  if (!nodeKeyword || typeof nodeKeyword !== 'string' || nodeKeyword.trim() === '') {
+    return res.status(400).json({ error: '节点关键词不能为空' });
+  }
+
+  try {
+    // 使用DeepSeek处理程序处理节点拓展请求
+    const result = await deepseekHandler.processNodeExtensionQuery(nodeKeyword);
+    
+    // 将数据发送回前端
+    res.json(result);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: '发生了一个错误。', message: error.message });
+  }
+});
+
 // ============ 新增: 文件上传路由 ============
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {

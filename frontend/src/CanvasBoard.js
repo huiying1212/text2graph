@@ -7,7 +7,9 @@ import svg from 'cytoscape-svg'; // SVG导出插件
 import GraphToolbar from './components/GraphToolbar';
 import WelcomePage from './components/WelcomePage';
 import NodeInfoPanel from './components/NodeInfoPanel';
+import NodeContextMenu from './components/NodeContextMenu';
 import { transformDataToElements, showNotification } from './utils/graphUtils';
+import axios from 'axios';
 
 cytoscape.use(fcose);
 cytoscape.use(svg); // 注册SVG插件
@@ -17,16 +19,40 @@ function CanvasBoard({ graphData, onModeSelect }) {
   const containerRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [contextMenu, setContextMenu] = useState({
+    isVisible: false,
+    position: { x: 0, y: 0 },
+    nodeId: null,
+    nodeKeyword: null
+  });
+  const [extendedGraphData, setExtendedGraphData] = useState(null);
+  const [isExtending, setIsExtending] = useState(false);
+  const [isIncrementalUpdate, setIsIncrementalUpdate] = useState(false);
 
   useEffect(() => {
+    // 使用extendedGraphData优先，如果没有则使用graphData
+    const currentGraphData = extendedGraphData || graphData;
+    
     // 如果没有图数据，清理现有的Cytoscape实例
-    if (!graphData) {
+    if (!currentGraphData) {
       if (cyRef.current) {
         cyRef.current.destroy();
         cyRef.current = null;
       }
       setSelectedNode(null);
       setZoomLevel(1);
+      setContextMenu({
+        isVisible: false,
+        position: { x: 0, y: 0 },
+        nodeId: null,
+        nodeKeyword: null
+      });
+      return;
+    }
+    
+    // 如果是增量更新，不重新创建整个图
+    if (isIncrementalUpdate && cyRef.current) {
+      setIsIncrementalUpdate(false);
       return;
     }
     
@@ -37,7 +63,7 @@ function CanvasBoard({ graphData, onModeSelect }) {
     // 初始化Cytoscape
     cyRef.current = cytoscape({
       container: containerRef.current,
-      elements: transformDataToElements(graphData),
+      elements: transformDataToElements(currentGraphData),
       style: cytoscapeStyles,
       layout: {
         name: 'fcose',
@@ -67,6 +93,14 @@ function CanvasBoard({ graphData, onModeSelect }) {
       const node = evt.target;
       setSelectedNode(node.id());
       
+      // 关闭右键菜单
+      setContextMenu({
+        isVisible: false,
+        position: { x: 0, y: 0 },
+        nodeId: null,
+        nodeKeyword: null
+      });
+      
       // 高亮连接的边和节点
       cyRef.current.elements().removeClass('highlighted');
       node.addClass('highlighted');
@@ -74,11 +108,34 @@ function CanvasBoard({ graphData, onModeSelect }) {
       node.neighborhood().addClass('highlighted');
     });
 
+    // 添加右键点击事件监听器
+    cyRef.current.on('cxttap', 'node.keyword-node', function(evt) {
+      const node = evt.target;
+      const nodeData = node.data();
+      const renderedPosition = evt.renderedPosition || evt.position;
+      
+      // 显示右键菜单
+      setContextMenu({
+        isVisible: true,
+        position: { x: renderedPosition.x, y: renderedPosition.y },
+        nodeId: nodeData.id,
+        nodeKeyword: nodeData.keyword
+      });
+      
+      evt.stopPropagation();
+    });
+
     cyRef.current.on('tap', function(evt) {
       if (evt.target === cyRef.current) {
-        // 点击空白区域，取消选择
+        // 点击空白区域，取消选择并关闭右键菜单
         setSelectedNode(null);
         cyRef.current.elements().removeClass('highlighted');
+        setContextMenu({
+          isVisible: false,
+          position: { x: 0, y: 0 },
+          nodeId: null,
+          nodeKeyword: null
+        });
       }
     });
 
@@ -99,7 +156,7 @@ function CanvasBoard({ graphData, onModeSelect }) {
       });
     });
 
-  }, [graphData]);
+  }, [graphData, extendedGraphData]);
 
   // 添加组件卸载时的清理
   useEffect(() => {
@@ -111,7 +168,25 @@ function CanvasBoard({ graphData, onModeSelect }) {
     };
   }, []);
 
-  // 返回首页功能
+  // 处理点击外部区域关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (contextMenu.isVisible) {
+        // 检查点击是否在菜单外部
+        const menuElement = event.target.closest('[data-context-menu]');
+        if (!menuElement) {
+          handleCloseContextMenu();
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [contextMenu.isVisible]);
+
+  // 处理返回首页功能
   const handleBackToHome = () => {
     // 确认对话框
     if (window.confirm('确定要返回首页吗？当前的图谱数据将会丢失。')) {
@@ -124,10 +199,204 @@ function CanvasBoard({ graphData, onModeSelect }) {
       // 重置所有状态
       setSelectedNode(null);
       setZoomLevel(1);
+      setExtendedGraphData(null);
+      setIsIncrementalUpdate(false);
+      setContextMenu({
+        isVisible: false,
+        position: { x: 0, y: 0 },
+        nodeId: null,
+        nodeKeyword: null
+      });
       
       // 重置到首页状态
       onModeSelect(null);
     }
+  };
+
+  // 处理节点拓展
+  const handleExtendNode = async () => {
+    if (!contextMenu.nodeKeyword || isExtending) return;
+
+    setIsExtending(true);
+    
+    try {
+      // 调用后端API进行节点拓展
+      const response = await axios.post('http://localhost:5000/node-extend', {
+        nodeKeyword: contextMenu.nodeKeyword
+      });
+
+      const { data: newData } = response.data;
+      
+      if (newData && newData.keyinfo && newData.connections) {
+        // 获取当前图谱数据
+        const currentData = extendedGraphData || graphData;
+        
+        // 找到最大的现有ID
+        const existingIds = currentData.keyinfo.map(node => node.id);
+        const maxId = Math.max(...existingIds, 0);
+        
+        // 为新节点分配新的ID，并更新连接关系
+        const updatedNewNodes = newData.keyinfo.map((node, index) => ({
+          ...node,
+          id: maxId + index + 1,
+          isExtendedInfo: 1 // 标记为扩展节点
+        }));
+        
+        const updatedNewConnections = newData.connections.map(conn => {
+          let fromId, toId;
+          
+          // 如果from是0，连接到被点击的节点
+          if (conn.from === 0) {
+            fromId = contextMenu.nodeId;
+          } else {
+            // 否则更新为新的ID
+            fromId = maxId + conn.from;
+          }
+          
+          // 如果to是0，连接到被点击的节点
+          if (conn.to === 0) {
+            toId = contextMenu.nodeId;
+          } else {
+            // 否则更新为新的ID
+            toId = maxId + conn.to;
+          }
+          
+          return {
+            ...conn,
+            from: fromId,
+            to: toId
+          };
+        });
+        
+        // 合并数据
+        const mergedData = {
+          keyinfo: [...currentData.keyinfo, ...updatedNewNodes],
+          connections: [...currentData.connections, ...updatedNewConnections]
+        };
+        
+        // 如果Cytoscape实例存在，增量添加新元素
+        if (cyRef.current) {
+          // 设置增量更新标志，防止useEffect重新创建整个图
+          setIsIncrementalUpdate(true);
+          
+          // 转换新节点数据为Cytoscape元素
+          const newElements = transformDataToElements({
+            keyinfo: updatedNewNodes,
+            connections: updatedNewConnections
+          });
+          
+          // 获取被点击节点的位置
+          const clickedNode = cyRef.current.getElementById(contextMenu.nodeId);
+          const clickedNodePosition = clickedNode.position();
+          
+          // 添加新元素到图中
+          cyRef.current.add(newElements);
+          
+          // 为新节点设置初始样式（透明度为0）
+          updatedNewNodes.forEach((node) => {
+            const keywordNode = cyRef.current.getElementById(node.id);
+            const childNode = cyRef.current.getElementById(`${node.id}-child`);
+            
+            if (keywordNode.length > 0) {
+              keywordNode.style('opacity', 0);
+            }
+            if (childNode.length > 0) {
+              childNode.style('opacity', 0);
+            }
+          });
+          
+          // 为新节点设置初始位置（围绕被点击的节点）
+          const radius = 180; // 新节点围绕原节点的半径
+          const angleStep = (2 * Math.PI) / updatedNewNodes.length;
+          const startAngle = Math.random() * Math.PI * 2; // 随机起始角度，避免重叠
+          
+          updatedNewNodes.forEach((node, index) => {
+            const angle = startAngle + index * angleStep;
+            const targetX = clickedNodePosition.x + radius * Math.cos(angle);
+            const targetY = clickedNodePosition.y + radius * Math.sin(angle);
+            
+            // 设置关键词节点位置
+            const keywordNode = cyRef.current.getElementById(node.id);
+            if (keywordNode.length > 0) {
+              // 从被点击节点的位置开始，然后动画到目标位置
+              keywordNode.position(clickedNodePosition);
+              
+              // 位置动画
+              keywordNode.animate({
+                position: { x: targetX, y: targetY }
+              }, {
+                duration: 500,
+                easing: 'ease-out-cubic'
+              });
+              
+              // 透明度动画（稍微延迟开始）
+              setTimeout(() => {
+                keywordNode.animate({
+                  style: { opacity: 1 }
+                }, {
+                  duration: 300,
+                  easing: 'ease-in'
+                });
+              }, 100);
+            }
+            
+            // 设置子节点位置（稍微偏移）
+            const childNode = cyRef.current.getElementById(`${node.id}-child`);
+            if (childNode.length > 0) {
+              childNode.position(clickedNodePosition);
+              
+              // 位置动画
+              childNode.animate({
+                position: { x: targetX + 10, y: targetY + 10 }
+              }, {
+                duration: 500,
+                easing: 'ease-out-cubic'
+              });
+              
+              // 透明度动画
+              setTimeout(() => {
+                childNode.animate({
+                  style: { opacity: 1 }
+                }, {
+                  duration: 300,
+                  easing: 'ease-in'
+                });
+              }, 150);
+            }
+          });
+          
+          // 确保新节点可以被正常交互
+          cyRef.current.nodes().forEach(node => {
+            const nodeId = node.id();
+            // 只对新添加的节点重新绑定事件
+            if (updatedNewNodes.some(newNode => nodeId === newNode.id.toString() || nodeId === `${newNode.id}-child`)) {
+              node.ungrabify();
+              node.grabify();
+            }
+          });
+        }
+        
+        // 更新扩展图谱数据
+        setExtendedGraphData(mergedData);
+        
+        showNotification(`成功拓展节点 "${contextMenu.nodeKeyword}"`, 'success');
+      }
+    } catch (error) {
+      console.error('节点拓展失败:', error);
+      showNotification('节点拓展失败，请稍后重试', 'error');
+    } finally {
+      setIsExtending(false);
+    }
+  };
+
+  // 关闭右键菜单
+  const handleCloseContextMenu = () => {
+    setContextMenu({
+      isVisible: false,
+      position: { x: 0, y: 0 },
+      nodeId: null,
+      nodeKeyword: null
+    });
   };
 
   // 如果没有图数据，显示欢迎页面
@@ -154,6 +423,79 @@ function CanvasBoard({ graphData, onModeSelect }) {
 
       {/* 选中节点信息面板 */}
       <NodeInfoPanel selectedNode={selectedNode} />
+
+      {/* 右键菜单 */}
+      {contextMenu.isVisible && (
+        <div
+          data-context-menu
+          style={{
+            position: 'absolute',
+            left: contextMenu.position.x,
+            top: contextMenu.position.y,
+            backgroundColor: '#ffffff',
+            border: '1px solid #e1e5e9',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+            minWidth: '120px',
+            overflow: 'hidden',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}
+        >
+          <div
+            onClick={() => {
+              handleExtendNode();
+              handleCloseContextMenu();
+            }}
+            style={{
+              padding: '12px 16px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#2c3e50',
+              backgroundColor: 'transparent',
+              transition: 'background-color 0.2s ease',
+              borderBottom: 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f8f9fa';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
+            🚀 拓展此节点
+          </div>
+        </div>
+      )}
+
+      {/* 节点拓展加载状态 */}
+      {isExtending && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '20px',
+          borderRadius: '8px',
+          zIndex: 10001,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '16px'
+        }}>
+          <div className="loading-spinner" style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid #ffffff33',
+            borderTop: '2px solid #ffffff',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          正在拓展节点...
+        </div>
+      )}
     </div>
   );
 }
