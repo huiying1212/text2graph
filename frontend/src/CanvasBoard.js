@@ -14,7 +14,7 @@ import axios from 'axios';
 cytoscape.use(fcose);
 cytoscape.use(svg); // 注册SVG插件
 
-function CanvasBoard({ graphData, onModeSelect }) {
+function CanvasBoard({ graphData, onModeSelect, setResponse, setLoading }) {
   const cyRef = useRef(null);
   const containerRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -401,7 +401,7 @@ function CanvasBoard({ graphData, onModeSelect }) {
 
   // 如果没有图数据，显示欢迎页面
   if (!graphData) {
-    return <WelcomePage onModeSelect={onModeSelect} />;
+    return <WelcomePage onModeSelect={onModeSelect} setResponse={setResponse} setLoading={setLoading} />;
   }
 
   return (

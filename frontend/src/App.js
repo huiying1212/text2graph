@@ -25,6 +25,8 @@ function App() {
           <CanvasBoard 
             graphData={graphData} 
             onModeSelect={handleModeSelect}
+            setResponse={setResponse}
+            setLoading={setLoading}
           />
         </div>
         {/* 右侧 Chat Box */}
