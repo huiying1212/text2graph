@@ -1,17 +1,29 @@
 /* 导入现代字体 */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+html {
+  overflow: hidden; /* 隐藏最外层滚动条 */
+  height: 100%; /* 确保html占满全屏 */
+  width: 100%; /* 确保html占满全屏 */
+}
+
 body {
   font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
-  padding: 20px;
+  padding: 0; /* 改为0，通过flex布局来居中 */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
   min-height: 100vh;
-  overflow-x: hidden;
+  height: 100vh; /* 设置固定高度 */
+  width: 100vw; /* 设置固定宽度 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 14px; /* 新增：设置基础字体大小为14px */
+  overflow: hidden; /* 新增：隐藏最外层滚动条 */
+  display: flex; /* 新增：使用flex布局 */
+  justify-content: center; /* 新增：水平居中 */
+  align-items: center; /* 新增：垂直居中 */
+  box-sizing: border-box; /* 新增：确保padding和border包含在宽高内 */
 }
 
 /* 移除旧的伪元素背景 */
@@ -19,48 +31,7 @@ body::before {
   display: none;
 }
 
-/* 添加动态背景效果 */
-body::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
-  z-index: -1;
-  animation: backgroundFloat 20s ease-in-out infinite;
-}
-
-@keyframes backgroundFloat {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  33% {
-    transform: translate(30px, -30px) rotate(1deg);
-  }
-  66% {
-    transform: translate(-20px, 20px) rotate(-1deg);
-  }
-}
-
-.App {
-  text-align: center;
-  padding: 20px; /* 从25px减少到20px */
-  margin: 0 auto;
-  max-width: 95vw; /* 从90vw增加到95vw，更好利用屏幕空间 */
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 25px; /* 从30px减少到25px */
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.15), /* 从25px减少到20px */
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  animation: fadeInUp 0.8s ease-out;
-}
+/* 移除动态背景效果 - 已删除body::after */
 
 /* 优化输入框样式 */
 .query-input {
@@ -267,10 +238,8 @@ button:disabled {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  
-  body::after {
-    animation: none;
-  }
+
+  /* 移除body::after动画禁用 - 背景动画已删除 */
 }
 
 /* 深色模式支持 */
@@ -288,13 +257,9 @@ button:disabled {
 /* 移动设备优化 */
 @media (max-width: 768px) {
   body {
-    padding: 8px; /* 从10px减少到8px */
+    padding: 0; /* 移动端保持0 padding */
     font-size: 13px; /* 新增：移动端使用更小字体 */
-  }
-  
-  .App {
-    padding: 12px; /* 从15px减少到12px */
-    max-width: 98vw; /* 从95vw增加到98vw */
+    /* 保持flex布局属性不变 */
   }
   
   .query-input {

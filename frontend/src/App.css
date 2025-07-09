@@ -1,32 +1,40 @@
 .App {
-  height: 85vh;
-  width: 90vw;
+  height: 90vh; /* 从85vh增加到90vh，更好利用空间 */
+  width: 95vw; /* 从90vw增加到95vw */
   display: flex;
   flex-direction: column;
   font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: transparent; /* 改为透明，让body的背景显示 */
   border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  position: relative; /* 新增：确保定位正确 */
+  box-sizing: border-box; /* 新增：确保尺寸计算正确 */
+  margin: 0; /* 新增：确保没有外边距 */
+  /* 移除box-shadow，让main-container来承担毛玻璃效果 */
 }
 
 .main-container {
   display: flex;
   flex: 1;
-  overflow: hidden;
   width: 100%;
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  background: rgba(255,255,255,0.05);
-  margin: 8px; /* 统一为8px，增加一些空间 */
-  gap: 8px; /* 添加gap来替代单独的margin */
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  border-radius: 20px; /* 与App保持一致的圆角 */
+  backdrop-filter: blur(20px); /* 增强毛玻璃效果 */
+  background: rgba(255,255,255,0.1); /* 增加透明度让毛玻璃效果更明显 */
+  margin: 0; /* 移除margin，让毛玻璃容器填满App */
+  padding: 20px; /* 增加padding，给内部内容更多空间 */
+  gap: 8px; /* 调整为8px，更合理的间距 */
+  box-shadow: 
+    0 20px 40px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.2); /* 毛玻璃内光效果 */
+  border: 1px solid rgba(255,255,255,0.2); /* 毛玻璃边框 */
+  align-items: stretch; /* 新增：确保子元素拉伸到相同高度 */
+  justify-content: center; /* 新增：水平居中对齐 */
+  box-sizing: border-box; /* 新增：确保尺寸计算正确 */
 }
 
 .left-board {
   flex: 2.5;
   background: rgba(255, 255, 255, 0.95);
-  padding: 16px;
+  padding: 16px; /* 从20px减少到16px，因为main-container已经有padding */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -35,7 +43,6 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  height: 100%; /* 统一为100% */
   border-radius: 12px;
   box-shadow: 
     0 6px 24px rgba(0,0,0,0.1),
@@ -70,9 +77,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px; /* 与left-board保持完全一致 */
+  padding: 16px; /* 从20px减少到16px，与left-board保持一致 */
   background: rgba(255, 255, 255, 0.95);
-  height: 100%;
   border-radius: 12px;
   box-shadow: 
     0 6px 24px rgba(0,0,0,0.1),
@@ -279,40 +285,44 @@ button:disabled::before {
 }
 
 .upload-button {
-  margin-right: 12px;
-  width: 44px;
-  height: 44px;
-  font-size: 20px;
-  line-height: 1;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  color: #667eea;
-  border: 2px solid rgba(102,126,234,0.2);
-  border-radius: 50%;
+  margin-right: 8px;
+  min-width: 50px;
+  height: 40px;
+  padding: 8px 12px;
+  font-size: 16px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 3px 8px rgba(0,0,0,0.1),
-    inset 0 1px 0 rgba(255,255,255,0.8);
-  font-weight: bold;
+    0 2px 8px rgba(52,152,219,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  position: relative;
+  overflow: hidden;
+  font-weight: 500;
 }
 
-.upload-button:hover {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border-color: transparent;
-  transform: translateY(-2px) scale(1.05);
+.upload-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9, #1f5f99);
+  transform: translateY(-1px);
   box-shadow: 
-    0 6px 16px rgba(102,126,234,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.2);
+    0 4px 15px rgba(52,152,219,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.3);
 }
 
 .upload-button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.6;
+  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
   transform: none;
+  box-shadow: 
+    0 2px 6px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 /* 动画效果 */
@@ -429,35 +439,41 @@ button:disabled::before {
 @media (max-width: 1024px) {
   .main-container {
     flex-direction: column;
-    gap: 6px;
+    gap: 12px; /* 保持与桌面版一致的gap */
+    padding: 16px; /* 平板上保持16px */
+    /* 移除margin设置，因为main-container填满App */
   }
   
   .left-board {
     flex: 1;
-    height: 60vh;
+    height: 55vh; /* 从60vh减少到55vh */
+    padding: 12px; /* 平板上减少padding */
   }
   
   .right-chat-box {
-    flex: 1; /* 改为flex: 1让高度自适应 */
-    min-height: 35vh; /* 设置最小高度保证可用性 */
+    flex: 1;
+    min-height: 30vh; /* 从35vh减少到30vh */
+    padding: 12px; /* 保持与left-board一致 */
   }
 }
 
 @media (max-width: 768px) {
   .App {
-    height: 90vh;
-    width: 98vw;
-    border-radius: 8px;
+    height: 95vh; /* 从90vh增加到95vh，手机上更好利用空间 */
+    width: 98vw; /* 手机上使用更多宽度 */
+    border-radius: 16px; /* 从8px增加到16px，保持美观 */
   }
   
   .main-container {
-    margin: 4px;
-    gap: 4px;
+    gap: 8px; /* 手机上使用更紧凑的间距 */
+    padding: 12px; /* 手机上减少padding */
+    border-radius: 16px; /* 手机上保持圆角 */
+    /* 移除margin设置，因为main-container填满App */
   }
   
   .left-board, .right-chat-box {
-    border-radius: 8px;
-    padding: 12px; /* 确保两侧padding一致 */
+    border-radius: 12px; /* 保持圆角美观 */
+    padding: 12px; /* 手机上保持合适的padding */
   }
   
   .chat-window {
@@ -548,4 +564,125 @@ button:disabled::before {
     0 10px 40px rgba(0,0,0,0.1),
     0 4px 16px rgba(16,185,129,0.05),
     inset 0 1px 0 rgba(255,255,255,0.8) !important;
+}
+
+/* Welcome页面动画效果 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Welcome页面元素动画 */
+.welcome-title {
+  animation: fadeInUp 1s ease-out 0.2s both;
+}
+
+.welcome-subtitle {
+  animation: fadeInUp 1s ease-out 0.4s both;
+}
+
+.welcome-buttons {
+  animation: fadeInUp 1s ease-out 0.6s both;
+}
+
+.welcome-upload {
+  animation: fadeInUp 1s ease-out 0.8s both;
+}
+
+.welcome-decorative {
+  animation: fadeInUp 1s ease-out 1s both;
+}
+
+/* 响应式设计优化 */
+@media (max-width: 768px) {
+  .welcome-text {
+    font-size: clamp(28px, 8vw, 48px) !important;
+    letter-spacing: 4px !important;
+  }
+  
+  .welcome-buttons {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  
+  .welcome-button {
+    min-width: 250px !important;
+    padding: 20px 24px !important;
+  }
+  
+  .upload-button {
+    min-width: 280px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-container {
+    padding: 20px 15px !important;
+  }
+  
+  .welcome-text {
+    font-size: clamp(24px, 10vw, 36px) !important;
+    letter-spacing: 2px !important;
+  }
+  
+  .welcome-buttons {
+    gap: 15px !important;
+  }
+  
+  .welcome-button {
+    min-width: 220px !important;
+    padding: 18px 20px !important;
+    font-size: 14px !important;
+  }
 }
