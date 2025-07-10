@@ -10,20 +10,20 @@ html {
 body {
   font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
-  padding: 0; /* 改为0，通过flex布局来居中 */
+  padding: 0;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
+  position: fixed;
   min-height: 100vh;
-  height: 100vh; /* 设置固定高度 */
-  width: 100vw; /* 设置固定宽度 */
+  height: 100vh;
+  width: 100vw;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 14px; /* 新增：设置基础字体大小为14px */
-  overflow: hidden; /* 新增：隐藏最外层滚动条 */
-  display: flex; /* 新增：使用flex布局 */
-  justify-content: center; /* 新增：水平居中 */
-  align-items: center; /* 新增：垂直居中 */
-  box-sizing: border-box; /* 新增：确保padding和border包含在宽高内 */
+  font-size: 14px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
 }
 
 /* 移除旧的伪元素背景 */

@@ -109,16 +109,16 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
         });
       }, 100);
 
-      // 先上传文件到服务器
-      await axios.post('http://localhost:5000/upload', formData, {
+      // 上传文件到 /upload-input 接口（用户输入文件，存储到uploads目录）
+      const uploadResponse = await axios.post('http://localhost:5000/upload-input', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      // 读取文件内容
-      const fileContent = await readFileContent(file);
+      // 直接使用返回的文件内容，无需再次读取
+      const fileContent = uploadResponse.data.content;
       
       // 将文件内容作为查询发送给处理API
       const endpoint = mode === 'extend' ? 'http://localhost:5000/extend' : 'http://localhost:5000/chat';
@@ -159,15 +159,6 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const readFileContent = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = reject;
-      reader.readAsText(file, 'UTF-8');
-    });
   };
 
   const getButtonContent = () => {
@@ -311,7 +302,6 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
           color: '#94a3b8',
           fontStyle: 'italic'
         }}>
-          支持 .txt .pdf .doc .docx 格式
         </div>
       )}
     </div>

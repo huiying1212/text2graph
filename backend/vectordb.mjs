@@ -12,8 +12,8 @@ import { AutoTokenizer, AutoModel } from '@xenova/transformers';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 修改路径解析方式，与成功的minimal_test保持一致
-const modelsParentDir = path.resolve('./models');
+// 修改路径解析方式，指向backend目录下的models
+const modelsParentDir = path.resolve(__dirname, 'models');
 const modelFolderName = 'all-MiniLM-L6-v2';
 
 // 创建自定义Embeddings类
@@ -54,10 +54,22 @@ class CustomTransformersEmbeddings extends Embeddings {
   
   async embedDocuments(texts) {
     await this.init();
+    if (texts.length > 1) {
+      console.log(`[CustomEmbeddings] 开始批量生成 ${texts.length} 个文档的嵌入向量...`);
+    }
     const embeddings = [];
-    for (const text of texts) {
+    for (let i = 0; i < texts.length; i++) {
+      const text = texts[i];
       const embedding = await this.embedQuery(text);
       embeddings.push(embedding);
+      
+      // 只在批量处理时显示进度，避免单个查询时的噪音
+      if (texts.length > 5 && (i + 1) % Math.ceil(texts.length / 5) === 0) {
+        console.log(`[CustomEmbeddings] 进度: ${i + 1}/${texts.length} 个文档已处理`);
+      }
+    }
+    if (texts.length > 1) {
+      console.log(`[CustomEmbeddings] 批量嵌入向量生成完成，共处理 ${texts.length} 个文档`);
     }
     return embeddings;
   }
@@ -65,7 +77,7 @@ class CustomTransformersEmbeddings extends Embeddings {
   async embedQuery(text) {
     await this.init();
     try {
-      console.log('[CustomEmbeddings] 开始生成嵌入向量...');
+      // 移除重复的日志输出，只在需要时输出
       const inputs = await this.tokenizer(text, { 
         padding: true, 
         truncation: true,
@@ -74,30 +86,20 @@ class CustomTransformersEmbeddings extends Embeddings {
       
       const output = await this.model(inputs);
       
-      // 打印输出结构以进行调试
-      console.log('[CustomEmbeddings] 模型输出类型:', typeof output);
-      console.log('[CustomEmbeddings] last_hidden_state类型:', typeof output.last_hidden_state);
-      
-      // 使用pooling_layer获取句子嵌入，这是库推荐的方式
-      // 使用均值池化的方法获取句子级别的嵌入
-      // 注意：张量不是普通数组，需要使用库提供的方法
-      
       // 方法1：尝试使用库的方法直接获取句子嵌入
       if (output.pooler_output) {
-        console.log('[CustomEmbeddings] 使用pooler_output作为嵌入向量');
         return Array.from(output.pooler_output.data);
       }
       
       // 方法2：如果没有pooler_output，尝试通过平均last_hidden_state的第一个token（通常是[CLS]标记）
       if (output.last_hidden_state && output.last_hidden_state.data) {
-        console.log('[CustomEmbeddings] 使用last_hidden_state的第一个token作为嵌入向量');
         // 假设第一个token的表示在data数组的开始部分
         const hiddenSize = output.last_hidden_state.dims[output.last_hidden_state.dims.length - 1];
         return Array.from(output.last_hidden_state.data).slice(0, hiddenSize);
       }
       
       // 方法3：最后的备选方案，如果上述方法都不可行
-      console.log('[CustomEmbeddings] 使用备选方案创建嵌入向量');
+      console.warn('[CustomEmbeddings] 使用备选方案创建嵌入向量');
       // 创建一个随机嵌入向量（长度384，与MiniLM模型维度一致）
       return Array(384).fill(0).map(() => Math.random() * 2 - 1);
     } catch (error) {
@@ -194,7 +196,7 @@ class VectorDBHandler {
 
   async createContentVectorStore(vectorStorePath) {
     try {
-      const contentPath = path.join(__dirname, '..', 'content.json');
+      const contentPath = path.join(__dirname, 'reference', 'content.json');
       const contentData = JSON.parse(fs.readFileSync(contentPath, 'utf8'));
       
       const documents = [];
@@ -233,7 +235,7 @@ class VectorDBHandler {
   
   async createImageVectorStore(vectorStorePath) {
     try {
-      const imagePath = path.join(__dirname, '..', 'image.json');
+      const imagePath = path.join(__dirname, 'reference', 'image.json');
       const imageData = JSON.parse(fs.readFileSync(imagePath, 'utf8'));
       
       const documents = [];
@@ -308,6 +310,8 @@ class VectorDBHandler {
         throw new Error('内容向量存储尚未就绪');
       }
 
+      console.log(`[VectorDBHandler] 开始处理上传文件: ${originalName}`);
+
       // 读取文件内容（按文本处理）
       const fileContent = fs.readFileSync(filePath, 'utf8');
 
@@ -329,6 +333,7 @@ class VectorDBHandler {
       });
 
       const splitDocs = await textSplitter.splitDocuments([uploadDoc]);
+      console.log(`[VectorDBHandler] 文件分割为 ${splitDocs.length} 个文档片段，开始生成向量...`);
 
       // 添加到内容向量库
       await this.contentVectorStore.addDocuments(splitDocs);
