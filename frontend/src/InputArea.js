@@ -164,28 +164,23 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
   const getButtonContent = () => {
     if (loading) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div className="loading-spinner"></div>
-          <span>处理中...</span>
+          <span>发送</span>
         </div>
       );
     }
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <span>发送</span>
-        <span style={{ fontSize: '14px' }}>✨</span>
-      </div>
-    );
+    return '发送'; /* 简化为只显示文字 */
   };
 
   const getModeIcon = () => {
     switch (mode) {
       case 'organize':
-        return '📚';
+        return '⯆';
       case 'extend':
-        return '🚀';
+        return '✦';
       default:
-        return '💭';
+        return '◉';
     }
   };
 
@@ -197,7 +192,7 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
           position: 'absolute',
           top: '-30px',
           left: '16px',
-          fontSize: '12px',
+          fontSize: '10px',
           color: '#667eea',
           fontWeight: '600',
           display: 'flex',
@@ -221,12 +216,12 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
         title={uploadProgress > 0 ? '上传中...' : '上传文件'}
       >
         {uploadProgress > 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
-            <div className="loading-spinner" style={{ width: '14px', height: '14px', marginRight: '6px' }}></div>
-            {uploadProgress}%
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: '12px', flexDirection: 'column', gap: '2px' }}>
+            <div className="loading-spinner" style={{ width: '12px', height: '12px' }}></div>
+            <span style={{ fontSize: '8px' }}>{uploadProgress}%</span>
           </div>
         ) : (
-          '📁'
+          '✚'
         )}
         
         {/* 上传进度条 */}
@@ -237,7 +232,7 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
             left: '0',
             height: '3px',
             background: 'rgba(255,255,255,0.9)',
-            borderRadius: '0 0 20px 20px',
+            borderRadius: '0 0 50% 50%',
             width: `${uploadProgress}%`,
             transition: 'width 0.3s ease'
           }} />
@@ -270,9 +265,11 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
         onClick={handleQuery} 
         disabled={loading || !query.trim() || isButtonDisabled}
         style={{
-          minWidth: '100px',
+          minWidth: '70px', /* 从100px减少到70px */
+          maxWidth: '80px', /* 添加最大宽度限制 */
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          padding: '10px 16px' /* 调整padding使按钮更紧凑 */
         }}
       >
         {getButtonContent()}

@@ -35,7 +35,7 @@ function ChatWindow({ response }) {
 
   const formatMessage = (msg) => {
     if (msg.role === 'assistant') {
-      return '✨ 可视化已完成';
+      return '图谱已生成（左侧白板区域）';
     }
     return msg.content;
   };
@@ -94,16 +94,6 @@ function ChatWindow({ response }) {
             </div>
             <div style={{ flex: 1 }}>
               {formattedMessage}
-              {msg.role === 'assistant' && (
-                <div style={{
-                  fontSize: '12px',
-                  color: 'rgba(255,255,255,0.7)',
-                  marginTop: '4px',
-                  fontStyle: 'italic'
-                }}>
-                  图谱已更新
-                </div>
-              )}
             </div>
           </div>
         );

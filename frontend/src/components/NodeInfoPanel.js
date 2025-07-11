@@ -3,11 +3,16 @@ import React from 'react';
 const NodeInfoPanel = ({ selectedNode }) => {
   if (!selectedNode) return null;
 
+  // 如果selectedNode是对象，显示keyword；如果是字符串（兼容性），显示原始值
+  const displayText = typeof selectedNode === 'object' 
+    ? selectedNode.keyword || selectedNode.id 
+    : selectedNode;
+
   return (
     <div className="node-info-panel" style={infoPanelStyle}>
-      <h4 style={{margin: '0 0 8px 0', color: '#2c3e50'}}>节点信息</h4>
+      <h4 style={{margin: '0 0 8px 0', color: '#2c3e50'}}>节点信息（右键可继续拓展节点）</h4>
       <p style={{margin: '4px 0', fontSize: '14px', color: '#7f8c8d'}}>
-        选中节点: {selectedNode}
+        当前选中节点: {displayText}
       </p>
     </div>
   );

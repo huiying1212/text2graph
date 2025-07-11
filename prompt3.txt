@@ -61,5 +61,6 @@ Your output must strictly follow this format:
 Constraints:
 Respond only with the requested JSON output only, adhering to the above requirements and do not contain any irrelevent messages.
 If you can not find any relevant infomation in image.json nor content.json, do not make fake descriptions, just leave it empty.
-Please do not include references, citations, or any source annotations in texts. !
+It's not possible to have same image in two different nodes.
+Please do not include references, citations, or any source annotations in texts. 
 Please respond in plain text only. Make sure the answer does not include any code formatting or blocks, such as ```json.

@@ -327,7 +327,7 @@ const WelcomePage = ({ onModeSelect, setResponse, setLoading }) => {
               }}
             >
               <div style={buttonIconContainerStyle}>
-                <div style={buttonIconStyle}>📚</div>
+                <div style={buttonIconStyle}>⯆</div>
               </div>
               <div style={buttonInfoStyle}>
                 <span style={buttonTitleStyle}>知识梳理</span>
@@ -350,7 +350,7 @@ const WelcomePage = ({ onModeSelect, setResponse, setLoading }) => {
               }}
             >
               <div style={buttonIconContainerStyle}>
-                <div style={buttonIconStyle}>🚀</div>
+                <div style={buttonIconStyle}>✦</div>
               </div>
               <div style={buttonInfoStyle}>
                 <span style={buttonTitleStyle}>知识拓展</span>

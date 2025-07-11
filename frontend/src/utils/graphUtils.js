@@ -49,7 +49,12 @@ export function transformDataToElements(graphData) {
       parent: node.id, 
       degree: degree,
       size: size,
-      details: `${node.description}\n${node.otherinfo}`,
+      details: `★ ${node.keyword.toUpperCase()}` + 
+               (node.description ? `\n\n${node.description}` : '') + 
+               (node.otherinfo ? `\n\n${node.otherinfo}` : ''),
+      keyword: node.keyword,
+      description: node.description || '',
+      otherinfo: node.otherinfo || '',
       isExtendedInfo: node.isExtendedInfo,
     };
 
@@ -85,7 +90,7 @@ export function showNotification(message, type = 'info') {
     position: fixed;
     top: 80px;
     right: 20px;
-    background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};
+    background: ${type === 'success' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};
     color: white;
     padding: 12px 20px;
     border-radius: 8px;

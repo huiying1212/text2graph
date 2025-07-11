@@ -134,7 +134,7 @@ const SaveDropdownMenu = ({ show, cyRef, onClose, showNotification }) => {
         className="save-menu-item" 
         style={saveMenuItemStyle}
         onClick={saveToPNG}
-        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(16,185,129,0.1)'}
+        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(59,130,246,0.1)'}
         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
       >
         <span style={saveIconStyle}>🖼️</span>
@@ -148,7 +148,7 @@ const SaveDropdownMenu = ({ show, cyRef, onClose, showNotification }) => {
         className="save-menu-item" 
         style={saveMenuItemStyle}
         onClick={saveToSVG}
-        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(16,185,129,0.1)'}
+        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(59,130,246,0.1)'}
         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
       >
         <span style={saveIconStyle}>📐</span>
@@ -164,7 +164,7 @@ const SaveDropdownMenu = ({ show, cyRef, onClose, showNotification }) => {
         className="save-menu-item" 
         style={saveMenuItemStyle}
         onClick={saveToJSON}
-        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(16,185,129,0.1)'}
+        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(59,130,246,0.1)'}
         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
       >
         <span style={saveIconStyle}>📄</span>

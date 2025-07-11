@@ -68,19 +68,48 @@ function CanvasBoard({ graphData, onModeSelect, setResponse, setLoading }) {
       layout: {
         name: 'fcose',
         quality: 'default',
-        randomize: false,
+        randomize: true,  // 启用随机化初始位置
         animate: true,
         animationDuration: 1500,
         animationEasing: 'ease-out-cubic',
         fit: true,
         padding: 50,
-        nodeSeparation: 350,
+        
+        // 节点分离和布局参数
+        nodeSeparation: 200,          // 减少节点分离距离，避免过度分散
+        nodeRepulsion: 3000,          // 减少节点排斥力，避免过度排斥导致直线排列
+        edgeElasticity: 0.6,          // 增加边的弹性
+        
+        // 布局质量和稳定性参数
+        gravity: 0.4,                 // 增加重力，让节点更容易聚集
+        gravityRangeCompound: 1.5,    // 复合节点重力范围
+        gravityCompound: 1.0,         // 复合节点重力
+        gravityRange: 3.8,            // 重力作用范围
+        
+        // 算法控制参数
+        numIter: 3000,                // 增加迭代次数以获得更好的布局
+        initialTemp: 1000,            // 增加初始温度，让节点有更多初始运动
+        coolingFactor: 0.99,          // 更慢的冷却，让算法有更多时间优化
+        minTemp: 1.0,                 // 最小温度
+        
+        // 其他配置
         nodeDimensionsIncludeLabels: true,
         uniformNodeDimensions: false,
         packComponents: true,
         step: 'all',
-        idealEdgeLength: 200,
-        nodeRepulsion: 2000,
+        nestingFactor: 0.1,           // 嵌套因子
+        
+        // 边长和重叠控制
+        idealEdgeLength: function(edge) {
+          // 根据边的类型动态调整边长，增加随机性避免直线排列
+          return 150 + Math.random() * 60; // 150-210之间的随机值
+        },
+        nodeOverlap: 20,              // 节点重叠检测
+        
+        // 多级别优化
+        tile: true,                   // 启用平铺以避免重叠
+        tilingPaddingVertical: 10,
+        tilingPaddingHorizontal: 10
       },
     });
 
@@ -91,7 +120,15 @@ function CanvasBoard({ graphData, onModeSelect, setResponse, setLoading }) {
     // 添加事件监听器
     cyRef.current.on('tap', 'node', function(evt) {
       const node = evt.target;
-      setSelectedNode(node.id());
+      const nodeData = node.data();
+      
+      // 传递完整的节点数据，包括keyword
+      setSelectedNode({
+        id: node.id(),
+        keyword: nodeData.keyword,
+        details: nodeData.details,
+        isParent: node.hasClass('keyword-node')
+      });
       
       // 关闭右键菜单
       setContextMenu({
@@ -305,15 +342,151 @@ function CanvasBoard({ graphData, onModeSelect, setResponse, setLoading }) {
             }
           });
           
-          // 为新节点设置初始位置（围绕被点击的节点）
-          const radius = 180; // 新节点围绕原节点的半径
-          const angleStep = (2 * Math.PI) / updatedNewNodes.length;
-          const startAngle = Math.random() * Math.PI * 2; // 随机起始角度，避免重叠
+          // 为新节点设置初始位置（智能避免重叠）
+          const baseRadius = 280; // 增加基础半径
+          const minNodeDistance = 180; // 增加节点之间的最小距离
+          const maxRadius = 800; // 增加最大半径限制
+          
+          // 获取所有现有节点的位置，用于碰撞检测
+          const existingPositions = [];
+          cyRef.current.nodes().forEach(node => {
+            if (!updatedNewNodes.some(newNode => node.id() === newNode.id.toString() || node.id() === `${newNode.id}-child`)) {
+              const pos = node.position();
+              let nodeSize;
+              
+              // 根据节点类型正确获取大小
+              if (node.hasClass('keyword-node')) {
+                nodeSize = 80; // keyword-node固定80px
+              } else if (node.hasClass('detail-node') || node.hasClass('extended-node')) {
+                nodeSize = parseInt(node.data('size')) || 100; // 使用data中的size
+              } else if (node.hasClass('text-only-node') || node.hasClass('text-only-extended-node')) {
+                nodeSize = Math.max(parseInt(node.data('size')) || 20, 60); // text-only节点虽然size小，但文字占据更大空间
+              } else {
+                nodeSize = 80; // 默认大小
+              }
+              
+              existingPositions.push({
+                x: pos.x,
+                y: pos.y,
+                size: nodeSize + 40 // 增加更大的缓冲距离
+              });
+            }
+          });
+          
+          // 为每个新节点找到合适的位置
+          const newNodePositions = [];
+          const startAngle = Math.random() * Math.PI * 2; // 随机起始角度
           
           updatedNewNodes.forEach((node, index) => {
-            const angle = startAngle + index * angleStep;
-            const targetX = clickedNodePosition.x + radius * Math.cos(angle);
-            const targetY = clickedNodePosition.y + radius * Math.sin(angle);
+            let foundValidPosition = false;
+            let currentRadius = baseRadius;
+            let targetX, targetY;
+            
+            // 尝试不同半径和角度，直到找到不重叠的位置
+            while (!foundValidPosition && currentRadius <= maxRadius) {
+              const angleStep = (2 * Math.PI) / updatedNewNodes.length;
+              const angle = startAngle + index * angleStep;
+              
+              // 尝试当前半径的位置
+              targetX = clickedNodePosition.x + currentRadius * Math.cos(angle);
+              targetY = clickedNodePosition.y + currentRadius * Math.sin(angle);
+              
+              // 检查与现有节点的碰撞
+              let hasCollision = false;
+              
+              // 检查与原有节点的碰撞
+              for (const existingPos of existingPositions) {
+                const distance = Math.sqrt(
+                  Math.pow(targetX - existingPos.x, 2) + 
+                  Math.pow(targetY - existingPos.y, 2)
+                );
+                // 增加安全距离：考虑现有节点大小的一半 + 新节点估计大小的一半 + 最小距离
+                const safeDistance = existingPos.size / 2 + 60 + minNodeDistance; // 新节点估计60px半径
+                if (distance < safeDistance) {
+                  hasCollision = true;
+                  break;
+                }
+              }
+              
+              // 检查与其他新节点的碰撞
+              if (!hasCollision) {
+                for (const newPos of newNodePositions) {
+                  const distance = Math.sqrt(
+                    Math.pow(targetX - newPos.x, 2) + 
+                    Math.pow(targetY - newPos.y, 2)
+                  );
+                  if (distance < minNodeDistance) {
+                    hasCollision = true;
+                    break;
+                  }
+                }
+              }
+              
+              if (!hasCollision) {
+                foundValidPosition = true;
+                newNodePositions.push({ x: targetX, y: targetY });
+              } else {
+                // 如果当前角度有碰撞，尝试微调角度
+                let angleOffset = Math.PI / (updatedNewNodes.length * 2);
+                let triedAngles = 0;
+                const maxAngleTries = 12; // 增加尝试次数
+                
+                while (hasCollision && triedAngles < maxAngleTries) {
+                  const adjustedAngle = angle + (triedAngles % 2 === 0 ? angleOffset : -angleOffset) * Math.ceil(triedAngles / 2);
+                  targetX = clickedNodePosition.x + currentRadius * Math.cos(adjustedAngle);
+                  targetY = clickedNodePosition.y + currentRadius * Math.sin(adjustedAngle);
+                  
+                  hasCollision = false;
+                  
+                  // 重新检查碰撞
+                  for (const existingPos of existingPositions) {
+                    const distance = Math.sqrt(
+                      Math.pow(targetX - existingPos.x, 2) + 
+                      Math.pow(targetY - existingPos.y, 2)
+                    );
+                    const safeDistance = existingPos.size / 2 + 60 + minNodeDistance;
+                    if (distance < safeDistance) {
+                      hasCollision = true;
+                      break;
+                    }
+                  }
+                  
+                  if (!hasCollision) {
+                    for (const newPos of newNodePositions) {
+                      const distance = Math.sqrt(
+                        Math.pow(targetX - newPos.x, 2) + 
+                        Math.pow(targetY - newPos.y, 2)
+                      );
+                      if (distance < minNodeDistance) {
+                        hasCollision = true;
+                        break;
+                      }
+                    }
+                  }
+                  
+                  if (!hasCollision) {
+                    foundValidPosition = true;
+                    newNodePositions.push({ x: targetX, y: targetY });
+                    break;
+                  }
+                  
+                  triedAngles++;
+                }
+                
+                if (!foundValidPosition) {
+                  // 如果微调角度还是不行，增加半径
+                  currentRadius += 120; // 增加更大的半径步长
+                }
+              }
+            }
+            
+            // 如果还是找不到位置，使用一个相对安全的位置
+            if (!foundValidPosition) {
+              const fallbackAngle = startAngle + index * (2 * Math.PI) / updatedNewNodes.length;
+              targetX = clickedNodePosition.x + maxRadius * Math.cos(fallbackAngle);
+              targetY = clickedNodePosition.y + maxRadius * Math.sin(fallbackAngle);
+              newNodePositions.push({ x: targetX, y: targetY });
+            }
             
             // 设置关键词节点位置
             const keywordNode = cyRef.current.getElementById(node.id);
@@ -325,7 +498,7 @@ function CanvasBoard({ graphData, onModeSelect, setResponse, setLoading }) {
               keywordNode.animate({
                 position: { x: targetX, y: targetY }
               }, {
-                duration: 500,
+                duration: 800, // 稍微延长动画时间，让用户更容易跟踪
                 easing: 'ease-out-cubic'
               });
               
@@ -340,16 +513,20 @@ function CanvasBoard({ graphData, onModeSelect, setResponse, setLoading }) {
               }, 100);
             }
             
-            // 设置子节点位置（稍微偏移）
+            // 设置子节点位置（稍微偏移，确保不重叠）
             const childNode = cyRef.current.getElementById(`${node.id}-child`);
             if (childNode.length > 0) {
               childNode.position(clickedNodePosition);
               
+              // 子节点偏移位置，确保不与父节点重叠
+              const childOffsetX = targetX + 15;
+              const childOffsetY = targetY + 15;
+              
               // 位置动画
               childNode.animate({
-                position: { x: targetX + 10, y: targetY + 10 }
+                position: { x: childOffsetX, y: childOffsetY }
               }, {
-                duration: 500,
+                duration: 800,
                 easing: 'ease-out-cubic'
               });
               
@@ -379,7 +556,7 @@ function CanvasBoard({ graphData, onModeSelect, setResponse, setLoading }) {
         // 更新扩展图谱数据
         setExtendedGraphData(mergedData);
         
-        showNotification(`成功拓展节点 "${contextMenu.nodeKeyword}"`, 'success');
+        // showNotification(`成功拓展节点 "${contextMenu.nodeKeyword}"`, 'success'); // 移除成功提示
       }
     } catch (error) {
       console.error('节点拓展失败:', error);
@@ -505,7 +682,7 @@ const cytoscapeStyles = [
   {
     selector: 'node.keyword-node',
     style: {
-      'label': 'data(keyword)',
+      'label': '', // 移除文本显示
       'text-wrap': 'wrap',
       'text-max-width': '150px',
       'text-valign': 'center',
@@ -513,19 +690,17 @@ const cytoscapeStyles = [
       'font-weight': 'bold',
       'font-size': '16px',
       'color': '#2c3e50',
-      'background-color': '#3498db',
-      'background-gradient-direction': 'to-bottom',
-      'background-gradient-stop-colors': '#3498db #2980b9',
+      'background-color': '#ffffff',
+      'background-opacity': 0.9,
       'width': '80px',
       'height': '80px',
-      'border-width': '3px',
-      'border-color': '#2980b9',
-      'border-opacity': 0.8,
-      'box-shadow': '0 4px 8px rgba(0,0,0,0.3)',
+      'border-width': '2px',
+      'border-color': '#e1e5e9',
+      'border-opacity': 0.6,
       'shape': 'roundrectangle',
       'padding': '10px',
       'grabbable': true,
-      'transition-property': 'background-color, transform, box-shadow',
+      'transition-property': 'transform, border-color, background-color',
       'transition-duration': '0.3s',
       'transition-timing-function': 'ease-out',
     },
@@ -533,20 +708,21 @@ const cytoscapeStyles = [
   {
     selector: 'node.keyword-node:hover',
     style: {
-      'background-gradient-stop-colors': '#5dade2 #3498db',
       'transform': 'scale(1.1)',
-      'box-shadow': '0 6px 12px rgba(0,0,0,0.4)',
-      'border-color': '#1f618d',
+      'background-color': '#f8f9fa',
+      'border-color': '#bdc3c7',
+      'border-opacity': 0.8,
       'z-index': 999,
     },
   },
   {
     selector: 'node.keyword-node:selected',
     style: {
-      'background-gradient-stop-colors': '#f39c12 #e67e22',
-      'border-color': '#d35400',
       'transform': 'scale(1.15)',
-      'box-shadow': '0 8px 16px rgba(243,156,18,0.5)',
+      'color': '#8e44ad', // 改为紫色文字
+      'background-color': '#f4e6f7', // 改为浅紫色背景
+      'border-color': '#bb8fce', // 改为紫色边框
+      'border-opacity': 0.8,
     },
   },
   {
@@ -555,25 +731,26 @@ const cytoscapeStyles = [
       'background-color': '#ecf0f1',
       'background-image': 'data(image)',
       'background-fit': 'cover',
-      'background-clip': 'none',
       'width': 'data(size)',
       'height': 'data(size)',
       'text-wrap': 'wrap',
-      'text-max-width': '150px',
+      'text-max-width': function(ele) {
+        const size = parseInt(ele.data('size')) || 100;
+        // 对于有图片的节点，文本框宽度为节点宽度的80%，最小120px，最大300px
+        return Math.min(Math.max(size * 1.1, 120), 300) + 'px';
+      },
       'text-valign': 'bottom',
       'text-halign': 'center',
       'label': 'data(details)', 
-      'font-size': '14px',
-      'font-weight': '500',
+      'font-size': '17px', // 从15px增加到17px
+      'font-weight': 'bold',
       'color': '#2c3e50',
-      'text-margin-y': '15px',
-      'text-background-color': 'rgba(255,255,255,0.9)',
-      'text-background-opacity': 1,
-      'text-background-padding': '4px',
-      'text-border-radius': '4px',
+      'text-margin-y': '18px',
+      'text-background-color': 'transparent',
+      'text-background-opacity': 0,
       'grabbable': true,
       'shape': 'roundrectangle',
-      'padding': '15px',
+      'padding': '8px', // 适当的padding值
       'border-width': '2px',
       'border-color': '#bdc3c7',
       'box-shadow': '0 3px 6px rgba(0,0,0,0.2)',
@@ -596,25 +773,26 @@ const cytoscapeStyles = [
       'background-color': '#f8c6db',
       'background-image': 'data(image)',
       'background-fit': 'cover',
-      'background-clip': 'none',
       'width': 'data(size)',
       'height': 'data(size)',
       'text-wrap': 'wrap',
-      'text-max-width': '150px',
+      'text-max-width': function(ele) {
+        const size = parseInt(ele.data('size')) || 100;
+        // 对于有图片的节点，文本框宽度为节点宽度的80%，最小120px，最大300px
+        return Math.min(Math.max(size * 1.1, 120), 300) + 'px';
+      },
       'text-valign': 'bottom',
       'text-halign': 'center',
       'label': 'data(details)', 
-      'font-size': '14px',
-      'font-weight': '500',
+      'font-size': '17px', // 从15px增加到17px
+      'font-weight': 'bold',
       'color': '#8e44ad',
-      'text-margin-y': '15px',
-      'text-background-color': 'rgba(248,198,219,0.95)',
-      'text-background-opacity': 1,
-      'text-background-padding': '4px',
-      'text-border-radius': '4px',
+      'text-margin-y': '18px',
+      'text-background-color': 'transparent',
+      'text-background-opacity': 0,
       'grabbable': true,
       'shape': 'roundrectangle',
-      'padding': '15px',
+      'padding': '8px', // 适当的padding值
       'border-width': '3px',
       'border-color': '#bf88a5',
       'box-shadow': '0 4px 8px rgba(191,136,165,0.4)',
@@ -636,25 +814,27 @@ const cytoscapeStyles = [
     selector: 'node.text-only-node',
     style: {
       'background-color': 'transparent',
+      'background-opacity': 0,
       'width': 'data(size)',
       'height': 'data(size)',
       'text-wrap': 'wrap',
-      'text-max-width': '200px',
+      'text-max-width': function(ele) {
+        const size = parseInt(ele.data('size')) || 20;
+        // 对于纯文本节点，基础宽度较大，因为它们主要依靠文本显示
+        return Math.min(Math.max(size * 6, 200), 250) + 'px';
+      },
       'text-valign': 'center',
       'text-halign': 'center',
       'label': 'data(details)', 
-      'font-size': '12px',
-      'font-weight': '500',
+      'font-size': '16px', // 从14px增加到16px
+      'font-weight': 'bold',
       'color': '#2c3e50',
-      'text-background-color': 'rgba(236,240,241,0.9)',
-      'text-background-opacity': 1,
-      'text-background-padding': '6px',
-      'text-border-radius': '6px',
-      'text-border-width': '1px',
-      'text-border-color': '#bdc3c7',
+      'text-background-color': 'transparent',
+      'text-background-opacity': 0,
       'grabbable': true,
-      'shape': 'ellipse',
+      'shape': 'rectangle',
       'border-width': '0px',
+      'border-opacity': 0,
       'transition-property': 'transform',
       'transition-duration': '0.2s',
     },
@@ -663,7 +843,8 @@ const cytoscapeStyles = [
     selector: 'node.text-only-node:hover',
     style: {
       'transform': 'scale(1.1)',
-      'text-background-color': 'rgba(189,195,199,0.95)',
+      'text-background-color': 'transparent',
+      'background-color': 'transparent',
       'z-index': 998,
     },
   },
@@ -671,25 +852,27 @@ const cytoscapeStyles = [
     selector: 'node.text-only-extended-node',
     style: {
       'background-color': 'transparent',
+      'background-opacity': 0,
       'width': 'data(size)',
       'height': 'data(size)',
       'text-wrap': 'wrap',
-      'text-max-width': '200px',
+      'text-max-width': function(ele) {
+        const size = parseInt(ele.data('size')) || 20;
+        // 对于纯文本节点，基础宽度较大，因为它们主要依靠文本显示
+        return Math.min(Math.max(size * 6, 150), 250) + 'px';
+      },
       'text-valign': 'center',
       'text-halign': 'center',
       'label': 'data(details)', 
-      'font-size': '12px',
-      'font-weight': '500',
+      'font-size': '16px', // 从14px增加到16px
+      'font-weight': 'bold',
       'color': '#8e44ad',
-      'text-background-color': 'rgba(248,198,219,0.9)',
-      'text-background-opacity': 1,
-      'text-background-padding': '6px',
-      'text-border-radius': '6px',
-      'text-border-width': '1px',
-      'text-border-color': '#bf88a5',
+      'text-background-color': 'transparent',
+      'text-background-opacity': 0,
       'grabbable': true,
-      'shape': 'ellipse',
+      'shape': 'rectangle',
       'border-width': '0px',
+      'border-opacity': 0,
       'transition-property': 'transform',
       'transition-duration': '0.2s',
     },
@@ -698,7 +881,8 @@ const cytoscapeStyles = [
     selector: 'node.text-only-extended-node:hover',
     style: {
       'transform': 'scale(1.1)',
-      'text-background-color': 'rgba(191,136,165,0.95)',
+      'text-background-color': 'transparent',
+      'background-color': 'transparent',
       'z-index': 998,
     },
   },
@@ -708,7 +892,7 @@ const cytoscapeStyles = [
       'label': 'data(label)',
       'text-rotation': 'autorotate',
       'font-weight': '600',
-      'font-size': '13px',
+      'font-size': '20px', // 从13px增加到16px，关系文字更大
       'text-margin-x': '0px',
       'text-margin-y': '-12px',
       'text-background-color': 'rgba(255,255,255,0.9)',
@@ -717,16 +901,15 @@ const cytoscapeStyles = [
       'text-border-radius': '3px',
       'text-border-width': '1px',
       'text-border-color': '#e0e0e0',
-      'width': 3,
-      'line-color': '#7f8c8d',
-      'target-arrow-color': '#7f8c8d',
+      'width': 12, // 从8增加到12，边更粗
+      'line-color': '#d5dbdb', // 改为更浅的灰色
+      'target-arrow-color': '#d5dbdb', // 改为更浅的灰色
       'target-arrow-shape': 'triangle',
       'curve-style': 'bezier',
       'color': '#34495e',
       'source-endpoint': 'outside-to-node',
       'target-endpoint': 'outside-to-node',
       'arrow-scale': 1.3,
-      'line-gradient-stop-colors': '#7f8c8d #95a5a6',
       'transition-property': 'line-color, target-arrow-color, width',
       'transition-duration': '0.2s',
     },
@@ -734,20 +917,18 @@ const cytoscapeStyles = [
   {
     selector: 'edge:hover',
     style: {
-      'width': 4,
-      'line-color': '#3498db',
-      'target-arrow-color': '#3498db',
-      'line-gradient-stop-colors': '#3498db #5dade2',
+      'width': 15, // 从10增加到15，悬停时更粗
+      'line-color': '#bdc3c7', // 悬停时稍深一点的浅灰色
+      'target-arrow-color': '#bdc3c7',
       'z-index': 997,
     },
   },
   {
     selector: 'edge.highlighted',
     style: {
-      'width': 5,
-      'line-color': '#e74c3c',
-      'target-arrow-color': '#e74c3c',
-      'line-gradient-stop-colors': '#e74c3c #c0392b',
+      'width': 18, // 从12增加到18，高亮时最粗
+      'line-color': '#bb8fce', // 改为更浅的紫色
+      'target-arrow-color': '#bb8fce', // 改为更浅的紫色
     },
   },
 ];
