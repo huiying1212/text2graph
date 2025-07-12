@@ -6,20 +6,46 @@
 ```
 /
 ├─ frontend/        # React前端应用
+│  ├─ src/          # 源代码目录
+│  │  ├─ App.js     # 主应用组件
+│  │  ├─ App.css    # 主应用样式
+│  │  ├─ index.js   # 应用入口
+│  │  ├─ index.css  # 全局样式
+│  │  ├─ CanvasBoard.js    # 画布组件
+│  │  ├─ ChatWindow.js     # 聊天窗口组件
+│  │  ├─ InputArea.js      # 输入区域组件
+│  │  ├─ components/       # 组件目录
+│  │  │  ├─ WelcomePage.js       # 欢迎页面组件
+│  │  │  ├─ GraphToolbar.js      # 图形工具栏组件
+│  │  │  ├─ SaveDropdownMenu.js  # 保存下拉菜单组件
+│  │  │  ├─ NodeInfoPanel.js     # 节点信息面板组件
+│  │  │  └─ NodeContextMenu.js   # 节点上下文菜单组件
+│  │  ├─ utils/     # 工具函数目录
+│  │  │  └─ graphUtils.js  # 图形工具函数
+│  │  ├─ hooks/     # 自定义钩子目录
+│  │  └─ styles/    # 样式文件目录
+│  ├─ public/       # 静态资源目录
+│  ├─ package.json  # 前端依赖配置
+│  └─ README.md     # 前端说明文档
 ├─ backend/         # Express后端服务器
 │  ├─ server.mjs    # 服务器入口
 │  ├─ deepseek_handler.mjs # LLM处理逻辑
-│  └─ vectordb.mjs  # 向量数据库处理逻辑
-├─ models/          # 嵌入模型目录
-│  └─ all-MiniLM-L6-v2/ # 嵌入模型文件
-├─ vectordb/        # 生成的向量数据库文件夹
+│  ├─ vectordb.mjs  # 向量数据库处理逻辑
+│  ├─ models/       # 嵌入模型目录
+│  │  └─ all-MiniLM-L6-v2/ # 嵌入模型文件
+│  ├─ uploads/      # 上传文件目录
+│  ├─ reference/    # 参考文件目录
+│  └─ .env          # 环境变量配置
+├─ prompt/          # 提示词文件目录
+├─ vectordb_image/  # 图像向量数据库文件夹
+├─ vectordb_content/ # 文本内容向量数据库文件夹
 └─ package.json     # 项目依赖
 ```
 
 ## 快速开始
 
 ### 1. 准备嵌入模型
-首先，确保将all-MiniLM-L6-v2模型文件夹下载并放置于项目根目录的models文件夹中。
+首先，确保all-MiniLM-L6-v2模型文件夹下载并放置于项目根目录的models文件夹中。
 
 ### 2. 安装依赖
 
@@ -87,10 +113,12 @@ npm start
 
 ## 技术栈
 
-- **嵌入模型**: all-MiniLM-L6-v2（通过@xenova/transformers加载）
-- **向量数据库**: FAISS（通过langchain集成）
-- **文本分割**: RecursiveCharacterTextSplitter
-- **前端**: React, Cytoscape.js, Axios
-- **后端**: Express, DeepSeek API
-- **通信**: REST API
+- **前端**: React 18, Cytoscape.js（图形可视化）
+- **后端**: Node.js, Express
+- **AI模型**: DeepSeek API
+- **嵌入模型**: all-MiniLM-L6-v2（@xenova/transformers）
+- **向量数据库**: FAISS（faiss-node）
+- **文档处理**: Langchain, PDF处理（pdf2pic, pdfjs-dist）
+- **文件上传**: Multer
+- **通信**: REST API, CORS
 
