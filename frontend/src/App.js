@@ -27,6 +27,7 @@ function App() {
             onModeSelect={handleModeSelect}
             setResponse={setResponse}
             setLoading={setLoading}
+            mode={mode}
           />
         </div>
         {/* 右侧 Chat Box */}

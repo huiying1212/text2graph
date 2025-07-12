@@ -11,10 +11,10 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
 
   useEffect(() => {
     if (mode === 'organize') {
-      setPlaceholder("📚 请输入文本进行知识梳理...");
+      setPlaceholder("请输入文本进行知识梳理...");
       setIsButtonDisabled(false);
     } else if (mode === 'extend') {
-      setPlaceholder("🚀 请输入文本进行知识拓展...");
+      setPlaceholder("请输入文本进行知识拓展...");
       setIsButtonDisabled(false);
     } else {
       setPlaceholder("请先选择模式...");
@@ -164,9 +164,19 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
   const getButtonContent = () => {
     if (loading) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div className="loading-spinner"></div>
-          <span>发送</span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          width: '100%', /* 确保容器占满按钮宽度 */
+          height: '100%' /* 确保容器占满按钮高度 */
+        }}>
+          <div className="loading-spinner" style={{ 
+            width: '16px', 
+            height: '16px',
+            border: '2px solid rgba(255,255,255,0.3)', /* 调整边框粗细 */
+            borderTopColor: 'white'
+          }}></div>
         </div>
       );
     }
@@ -213,7 +223,7 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
         className="upload-button"
         onClick={handleFileUpload}
         disabled={loading || isButtonDisabled || uploadProgress > 0}
-        title={uploadProgress > 0 ? '上传中...' : '上传文件'}
+        title={uploadProgress > 0 ? '上传中...' : (loading ? '处理中...' : '上传文件')}
       >
         {uploadProgress > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', fontSize: '12px', flexDirection: 'column', gap: '2px' }}>
@@ -224,7 +234,7 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
           '✚'
         )}
         
-        {/* 上传进度条 */}
+        {/* 上传进度条 - 只在文件上传时显示 */}
         {uploadProgress > 0 && (
           <div style={{
             position: 'absolute',
@@ -262,14 +272,20 @@ function InputArea({ setGraphData, setResponse, setLoading, loading, mode }) {
       />
 
       <button 
+        className="send-button" /* 添加特定的类名 */
         onClick={handleQuery} 
         disabled={loading || !query.trim() || isButtonDisabled}
         style={{
-          minWidth: '70px', /* 从100px减少到70px */
-          maxWidth: '80px', /* 添加最大宽度限制 */
+          width: '70px', /* 设置固定宽度 */
+          height: '34px', /* 设置固定高度 */
+          minWidth: '70px', /* 确保最小宽度 */
+          maxWidth: '70px', /* 确保最大宽度 */
           position: 'relative',
           overflow: 'hidden',
-          padding: '10px 16px' /* 调整padding使按钮更紧凑 */
+          padding: '0', /* 移除padding，使用固定尺寸 */
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
         {getButtonContent()}

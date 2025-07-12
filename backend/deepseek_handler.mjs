@@ -24,7 +24,7 @@ class DeepSeekHandler {
   // 加载系统提示词
   loadSystemPrompt() {
     try {
-      const promptPath = path.join(__dirname, '..', 'prompt.txt');
+      const promptPath = path.join(__dirname, '..', 'prompt', 'prompt1.txt');
       this.systemPrompt = fs.readFileSync(promptPath, 'utf8');
       console.log('系统提示词加载成功');
     } catch (error) {
@@ -36,7 +36,7 @@ class DeepSeekHandler {
   // 加载知识拓展提示词
   loadExtensionPrompt() {
     try {
-      const promptPath = path.join(__dirname, '..', 'prompt2.txt');
+      const promptPath = path.join(__dirname, '..', 'prompt', 'prompt2.txt');
       this.extensionPrompt = fs.readFileSync(promptPath, 'utf8');
       console.log('知识拓展提示词加载成功');
     } catch (error) {
@@ -48,7 +48,7 @@ class DeepSeekHandler {
   // 加载节点拓展提示词（prompt3）
   loadNodeExtensionPrompt() {
     try {
-      const promptPath = path.join(__dirname, '..', 'prompt3.txt');
+      const promptPath = path.join(__dirname, '..', 'prompt', 'prompt3.txt');
       this.nodeExtensionPrompt = fs.readFileSync(promptPath, 'utf8');
       console.log('节点拓展提示词加载成功');
     } catch (error) {

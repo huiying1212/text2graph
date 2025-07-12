@@ -49,49 +49,48 @@ const GraphToolbar = ({
     if (cyRef.current) {
       const layout = cyRef.current.layout({
         name: 'fcose',
-        quality: 'default',
-        randomize: true,  // 启用随机化初始位置
+        fit: true,
+        padding: 50,
+        nodeSeparation: 80,
+        nodeRepulsion: 1500,
+        idealEdgeLength: 100,
+        edgeElasticity: 0.45,
+        nestingFactor: 0.1,
+        gravity: 0.25,
+        numIter: 2500,
+        tile: true,
         animate: true,
         animationDuration: 1500,
         animationEasing: 'ease-out-cubic',
-        fit: true,
-        padding: 50,
-        
-        // 节点分离和布局参数 (与CanvasBoard.js保持一致)
-        nodeSeparation: 200,          // 减少节点分离距离，避免过度分散
-        nodeRepulsion: 3000,          // 减少节点排斥力，避免过度排斥导致直线排列
-        edgeElasticity: 0.6,          // 增加边的弹性
-        
-        // 布局质量和稳定性参数
-        gravity: 0.4,                 // 增加重力，让节点更容易聚集
-        gravityRangeCompound: 1.5,    // 复合节点重力范围
-        gravityCompound: 1.0,         // 复合节点重力
-        gravityRange: 3.8,            // 重力作用范围
-        
-        // 算法控制参数
-        numIter: 3000,                // 增加迭代次数以获得更好的布局
-        initialTemp: 1000,            // 增加初始温度，让节点有更多初始运动
-        coolingFactor: 0.99,          // 更慢的冷却，让算法有更多时间优化
-        minTemp: 1.0,                 // 最小温度
-        
-        // 其他配置
+        randomize: function() {
+          // 自定义随机化函数，偏向横向分布
+          return {
+            x: Math.random() * 1.5 - 0.75, // 横向范围更大
+            y: Math.random() * 0.7 - 0.35  // 纵向范围较小
+          };
+        },
         nodeDimensionsIncludeLabels: true,
         uniformNodeDimensions: false,
         packComponents: true,
         step: 'all',
-        nestingFactor: 0.1,           // 嵌套因子
-        
-        // 边长和重叠控制
-        idealEdgeLength: function(edge) {
-          // 根据边的类型动态调整边长，增加随机性避免直线排列
-          return 150 + Math.random() * 60; // 150-210之间的随机值
-        },
-        nodeOverlap: 20,              // 节点重叠检测
-        
-        // 多级别优化
-        tile: true,                   // 启用平铺以避免重叠
-        tilingPaddingVertical: 10,
-        tilingPaddingHorizontal: 10
+        samplingType: true,
+        sampleSize: 25,
+        nodeDimensionsIncludeLabels: true,
+        ready: function() {
+          // 布局完成后进行横向优化
+          if (cyRef.current) {
+            const nodes = cyRef.current.nodes();
+            const bbox = nodes.boundingBox();
+            const centerY = (bbox.y1 + bbox.y2) / 2;
+            
+            // 将所有节点的Y坐标向中心压缩，增强横向分布
+            nodes.forEach(node => {
+              const pos = node.position();
+              const newY = centerY + (pos.y - centerY) * 0.6; // 压缩Y坐标
+              node.position({ x: pos.x, y: newY });
+            });
+          }
+        }
       });
       layout.run();
     }

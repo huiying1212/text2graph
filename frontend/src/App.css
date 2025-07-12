@@ -151,7 +151,7 @@
 .input-area {
   display: flex;
   align-items: center;
-  padding: 12px;
+  padding: 8px; /* 从12px减少到8px */
   background: rgba(255,255,255,0.7);
   border-radius: 12px;
   margin-top: 6px; /* 从12px减少到6px，缩小间距 */
@@ -166,11 +166,11 @@
 
 .query-input {
   flex: 1;
-  padding: 10px 14px; /* 从14px 18px减少到10px 14px */
+  padding: 8px 12px; /* 从10px 14px减少到8px 12px */
   font-size: 14px; /* 从16px减少到14px */
   border: 2px solid transparent;
-  border-radius: 20px; /* 从25px减少到20px */
-  margin-right: 12px; /* 从10px增加到12px，配合新的按钮间距 */
+  border-radius: 18px; /* 从20px减少到18px */
+  margin-right: 10px; /* 从12px减少到10px */
   background: rgba(255,255,255,0.9);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
@@ -195,12 +195,12 @@
 }
 
 button {
-  padding: 10px 16px; /* 从10px 18px减少到10px 16px，使按钮更紧凑 */
+  padding: 8px 14px; /* 从10px 16px减少到8px 14px */
   font-size: 14px; /* 从16px减少到14px */
   font-weight: 600;
   cursor: pointer;
   border: none;
-  border-radius: 20px; /* 从25px减少到20px */
+  border-radius: 18px; /* 从20px减少到18px */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -262,7 +262,7 @@ button:disabled::before {
   align-self: flex-end;
   box-shadow: 0 3px 10px rgba(102,126,234,0.3); /* 从更大的阴影减少 */
   position: relative;
-  font-size: 14px; /* 新增：明确字体大小 */
+  font-size: 13px; /* 从14px减少到13px */
   line-height: 1.4; /* 新增：适当行高 */
   animation: slideInRight 0.3s ease-out;
 }
@@ -290,18 +290,18 @@ button:disabled::before {
   align-self: flex-start;
   box-shadow: 0 3px 10px rgba(0,0,0,0.1); /* 从更大的阴影减少 */
   border: 1px solid rgba(0,0,0,0.1);
-  font-size: 14px; /* 新增：明确字体大小 */
+  font-size: 13px; /* 从14px减少到13px */
   line-height: 1.4; /* 新增：适当行高 */
   animation: slideInLeft 0.3s ease-out;
 }
 
 .upload-button {
-  margin-right: 12px;
-  width: 44px; /* 设置固定宽度，使其接近圆形 */
-  height: 44px; /* 设置固定高度，使其接近圆形 */
-  min-width: 44px; /* 防止压缩 */
+  margin-right: 10px; /* 从12px减少到10px */
+  width: 38px; /* 从44px减少到38px */
+  height: 38px; /* 从44px减少到38px */
+  min-width: 38px; /* 从44px减少到38px */
   padding: 0; /* 移除padding，使用固定尺寸 */
-  font-size: 18px; /* 调整图标大小 */
+  font-size: 16px; /* 从18px减少到16px */
   background: linear-gradient(135deg, #3498db, #2980b9);
   color: white;
   border: none;
@@ -312,7 +312,7 @@ button:disabled::before {
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 3px 12px rgba(52,152,219,0.3), /* 增强阴影 */
+    0 2px 10px rgba(52,152,219,0.3), /* 从3px 12px减少 */
     inset 0 1px 0 rgba(255,255,255,0.2);
   position: relative;
   overflow: hidden;
@@ -335,6 +335,15 @@ button:disabled::before {
   box-shadow: 
     0 2px 6px rgba(0,0,0,0.1),
     inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* 防止禁用状态下的悬停效果 */
+.upload-button:disabled:hover {
+  transform: none !important;
+  box-shadow: 
+    0 2px 6px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.1) !important;
+  background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important;
 }
 
 /* 动画效果 */
@@ -870,4 +879,69 @@ button:disabled::before {
   background: rgba(248,249,250,0.9) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
+/* 发送按钮特定样式 */
+.send-button {
+  width: 70px !important;
+  height: 34px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border-radius: 18px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 
+    0 3px 10px rgba(102,126,234,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.send-button:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 8px 20px rgba(102,126,234,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+
+.send-button:active:not(:disabled) {
+  transform: translateY(0) !important;
+  box-shadow: 
+    0 2px 8px rgba(102,126,234,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+
+.send-button:disabled {
+  background: #cbd5e1 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.send-button::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent) !important;
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.send-button:hover:not(:disabled)::before {
+  left: 100% !important;
+}
+
+.send-button:disabled::before {
+  display: none !important;
 }

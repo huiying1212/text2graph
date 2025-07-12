@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 
-const WelcomePage = ({ onModeSelect, setResponse, setLoading }) => {
+const WelcomePage = ({ onModeSelect, setResponse, setLoading, mode }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [vectorizedFiles, setVectorizedFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -314,16 +314,24 @@ const WelcomePage = ({ onModeSelect, setResponse, setLoading }) => {
           {/* 移除区域标题 */}
           <div style={buttonsGridStyle} className="welcome-buttons">
             <button 
-              style={{...actionButtonStyle, ...organizeButtonStyle}} 
+              style={{
+                ...actionButtonStyle, 
+                ...(mode === 'organize' ? selectedButtonStyle : organizeButtonStyle)
+              }} 
               className="welcome-button"
               onClick={() => onModeSelect('organize')}
+              disabled={mode === 'organize'}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-4px) scale(1.02)';
-                e.target.style.boxShadow = '0 12px 30px rgba(52,152,219,0.3)';
+                if (mode !== 'organize') {
+                  e.target.style.transform = 'translateY(-4px) scale(1.02)';
+                  e.target.style.boxShadow = '0 12px 30px rgba(52,152,219,0.3)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.target.style.transform = '';
-                e.target.style.boxShadow = '';
+                if (mode !== 'organize') {
+                  e.target.style.transform = '';
+                  e.target.style.boxShadow = '';
+                }
               }}
             >
               <div style={buttonIconContainerStyle}>
@@ -337,16 +345,24 @@ const WelcomePage = ({ onModeSelect, setResponse, setLoading }) => {
             </button>
             
             <button 
-              style={{...actionButtonStyle, ...extendButtonStyle}} 
+              style={{
+                ...actionButtonStyle, 
+                ...(mode === 'extend' ? selectedButtonStyle : extendButtonStyle)
+              }} 
               className="welcome-button"
               onClick={() => onModeSelect('extend')}
+              disabled={mode === 'extend'}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-4px) scale(1.02)';
-                e.target.style.boxShadow = '0 12px 30px rgba(155,89,182,0.3)';
+                if (mode !== 'extend') {
+                  e.target.style.transform = 'translateY(-4px) scale(1.02)';
+                  e.target.style.boxShadow = '0 12px 30px rgba(155,89,182,0.3)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.target.style.transform = '';
-                e.target.style.boxShadow = '';
+                if (mode !== 'extend') {
+                  e.target.style.transform = '';
+                  e.target.style.boxShadow = '';
+                }
               }}
             >
               <div style={buttonIconContainerStyle}>
@@ -574,7 +590,7 @@ const titleTextContainerStyle = {
 };
 
 const mainTitleStyle = {
-  fontSize: 'clamp(48px, 8vw, 72px)',
+  fontSize: 'clamp(55px, 8vw, 72px)',
   fontWeight: '700',
   letterSpacing: '3px',
   margin: 0,
@@ -1013,6 +1029,14 @@ const organizeButtonStyle = {
 const extendButtonStyle = {
   background: 'linear-gradient(135deg, rgba(155,89,182,0.9), rgba(142,68,173,0.8))',
   boxShadow: '0 6px 20px rgba(155,89,182,0.2)',
+};
+
+const selectedButtonStyle = {
+  background: 'linear-gradient(135deg, rgba(169,169,169,0.9), rgba(128,128,128,0.8))',
+  boxShadow: '0 6px 20px rgba(169,169,169,0.2)',
+  cursor: 'not-allowed',
+  opacity: 0.7,
+  transform: 'none',
 };
 
 export default WelcomePage; 
